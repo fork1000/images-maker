@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<h1>images maker</h1>
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,11 +23,16 @@
 </head>
 <body>
 
+    <h1>images maker</h1>
+
     <button onclick="document.getElementById('gallery').click()">upload</button>
     <input type="file" id="gallery" accept="image/*" style="display:none">
     
     <input type="text" id="topText" placeholder="Top Text" oninput="draw()">
     <input type="text" id="bottomText" placeholder="Bottom Text" oninput="draw()">
+    
+    <label>quality:</label>
+    <input type="range" id="quality" min="0.01" max="1.0" step="0.01" value="1.0" oninput="draw()">
     
     <button onclick="download()">save</button>
 
@@ -38,6 +42,8 @@
     <script>
         const canvas = document.getElementById('memeCanvas');
         const ctx = canvas.getContext('2d');
+        const offscreen = document.createElement('canvas');
+        const octx = offscreen.getContext('2d');
         let img = null;
 
         const cfg = {
@@ -59,8 +65,8 @@
             reader.onload = (ev) => {
                 img = new Image();
                 img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    canvas.width = offscreen.width = img.width;
+                    canvas.height = offscreen.height = img.height;
                     draw();
                 };
                 img.src = ev.target.result;
@@ -71,41 +77,58 @@
         function draw() {
             if(!img) return;
 
-            ctx.drawImage(img, 0, 0);
+            octx.clearRect(0, 0, offscreen.width, offscreen.height);
+            octx.drawImage(img, 0, 0);
 
-            const fontSize = canvas.width / 9;
-            ctx.font = `${fontSize}px TrueImpact`;
-            ctx.textAlign = 'center';
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = 'black';
+            const fontSize = offscreen.width / 9;
+            octx.font = `${fontSize}px TrueImpact`;
+            octx.textAlign = 'center';
+            octx.fillStyle = 'white';
+            octx.strokeStyle = 'black';
             
-            ctx.lineWidth = cfg.s * (canvas.width / 1000);
-            ctx.lineJoin = cfg.r;
-            ctx.miterLimit = 2;
-            ctx.letterSpacing = `${cfg.sp}px`;
+            octx.lineWidth = cfg.s * (offscreen.width / 1000);
+            octx.lineJoin = cfg.r;
+            octx.miterLimit = 2;
+            octx.letterSpacing = `${cfg.sp}px`;
 
             const t = document.getElementById('topText').value.toUpperCase();
             const b = document.getElementById('bottomText').value.toUpperCase();
 
-            ctx.save();
-            ctx.translate(canvas.width / 2, fontSize + 10);
-            ctx.scale(cfg.w, cfg.h); 
-            ctx.strokeText(t, 0, 0);
-            ctx.fillText(t, 0, 0);
-            ctx.restore();
+            octx.save();
+            octx.translate(offscreen.width / 2, fontSize + 10);
+            octx.scale(cfg.w, cfg.h); 
+            octx.strokeText(t, 0, 0);
+            octx.fillText(t, 0, 0);
+            octx.restore();
 
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height - 30);
-            ctx.scale(cfg.w, cfg.h);
-            ctx.strokeText(b, 0, 0);
-            ctx.fillText(b, 0, 0);
-            ctx.restore();
+            octx.save();
+            octx.translate(offscreen.width / 2, offscreen.height - 30);
+            octx.scale(cfg.w, cfg.h);
+            octx.strokeText(b, 0, 0);
+            octx.fillText(b, 0, 0);
+            octx.restore();
+
+            const q = parseFloat(document.getElementById('quality').value);
+            const dataUrl = offscreen.toDataURL('image/jpeg', q);
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(tempImg, 0, 0);
+            };
+            tempImg.src = dataUrl;
         }
 
         function download() {
+            const q = parseFloat(document.getElementById('quality').value);
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let name = '';
+            for (let i = 0; i < 12; i++) {
+                name += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
             const link = document.createElement('a');
-            link.download = 'meme.png';
-            link.href = canvas.toDataURL();
+            link.download = name + '.jpg';
+            link.href = offscreen.toDataURL('image/jpeg', q);
             link.click();
         }
     </script>
