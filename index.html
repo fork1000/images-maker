@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<h1>images maker</h1>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @font-face {
+            font-family: 'TrueImpact';
+            src: url('https://cdn.jsdelivr.net/gh/rockthepiano/impact-font@master/impact.woff') format('woff');
+        }
+        body { 
+            background-color: #333333; 
+            color: white; 
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        canvas { 
+            max-width: 100%; 
+            display: block; 
+            margin-top: 10px; 
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <button onclick="document.getElementById('gallery').click()">upload</button>
+    <input type="file" id="gallery" accept="image/*" style="display:none">
+    
+    <input type="text" id="topText" placeholder="Top Text" oninput="draw()">
+    <input type="text" id="bottomText" placeholder="Bottom Text" oninput="draw()">
+    
+    <button onclick="download()">save</button>
+
+    <br>
+    <canvas id="memeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        let img = null;
+
+        const cfg = {
+            w: 0.93,
+            s: 5,
+            h: 0.9,
+            sp: 0,
+            r: 'miter'
+        };
+
+        const impact = new FontFace('TrueImpact', 'url(https://cdn.jsdelivr.net/gh/rockthepiano/impact-font@master/impact.woff)');
+        impact.load().then((f) => {
+            document.fonts.add(f);
+            draw();
+        });
+
+        document.getElementById('gallery').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    draw();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        function draw() {
+            if(!img) return;
+
+            ctx.drawImage(img, 0, 0);
+
+            const fontSize = canvas.width / 9;
+            ctx.font = `${fontSize}px TrueImpact`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            
+            ctx.lineWidth = cfg.s * (canvas.width / 1000);
+            ctx.lineJoin = cfg.r;
+            ctx.miterLimit = 2;
+            ctx.letterSpacing = `${cfg.sp}px`;
+
+            const t = document.getElementById('topText').value.toUpperCase();
+            const b = document.getElementById('bottomText').value.toUpperCase();
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, fontSize + 10);
+            ctx.scale(cfg.w, cfg.h); 
+            ctx.strokeText(t, 0, 0);
+            ctx.fillText(t, 0, 0);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height - 30);
+            ctx.scale(cfg.w, cfg.h);
+            ctx.strokeText(b, 0, 0);
+            ctx.fillText(b, 0, 0);
+            ctx.restore();
+        }
+
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'meme.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>
