@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Meme Maker Pro</title>
+    <title>Image Maker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
         * { box-sizing: border-box; }
@@ -22,12 +22,18 @@
         .btn-add { background: #3498db; color: white; width: 100%; }
         .btn-done { background: #32CD32; color: black; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 25px; font-size: 22px; border: none; letter-spacing: 2px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
         .text-row { display: flex; gap: 5px; width: 100%; }
-        .text-row input { flex-grow: 1; background: #fff; color: #000; }
+        .text-row input { flex-grow: 1; background: #fff; color: #000; font-weight: bold; }
         .btn-del { background: #e74c3c; color: white; width: 45px; }
         .sub-settings { display: flex; gap: 10px; font-size: 9px; align-items: center; margin-bottom: 5px; background: #222; padding: 5px; border-radius: 4px; }
         .sub-settings input { height: 4px; flex-grow: 1; accent-color: #3498db; }
         label { display: flex; flex-direction: column; gap: 2px; text-transform: uppercase; color: #bbb; }
-        @font-face { font-family: 'MemeImpact'; src: url('impact.ttf'); font-weight: normal; font-style: normal; }
+        
+        @font-face {
+            font-family: 'ImpactCustom';
+            src: url('impact.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
     </style>
 </head>
 <body>
@@ -36,10 +42,13 @@
         <h2 style="margin:5px 0; text-align: center; letter-spacing: 1px;">IMAGE MAKER</h2>
         <button class="btn-up" onclick="document.getElementById('gallery').click()">1. Upload Image</button>
         <input type="file" id="gallery" accept="image/*" style="display:none">
+        
         <div id="cropWrap" class="crop-container"><img id="cropImg" style="display: block; max-width: 100%;"></div>
         <button id="applyBtn" class="btn-apply" onclick="applyCrop()" style="display:none">Confirm Crop</button>
+        
         <div id="textInputs" style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;"></div>
         <button class="btn-add" onclick="addText()">+ Add New Text</button>
+        
         <div class="settings">
             <label>Quality <input type="range" id="quality" min="1" max="100" value="100" oninput="render()"></label>
             <label>Noise <input type="range" id="noise" min="0" max="100" value="0" onchange="processBaseAndRender()"></label>
@@ -70,7 +79,7 @@
         let cropper, baseImg = null, texts = [], activeDragIdx = null, holdTimer = null, isDraggingEnabled = false, dragMode = null;
         let startPointerX = 0, startPointerY = 0, startTextX = 0, startTextY = 0, startScaleW = 1, startScaleH = 1, startHandleDist = 0;
 
-        document.fonts.load('10pt "MemeImpact"').then(() => { render(); });
+        document.fonts.load('10pt "ImpactCustom"').then(() => { render(); });
 
         function refreshInputs() {
             const container = document.getElementById('textInputs'); container.innerHTML = '';
@@ -91,7 +100,7 @@
         }
 
         function addText() { 
-            texts.push({ content: "NEW TEXT", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1, width: 0, height: 0, baseW: 100, baseH: 50 }); 
+            texts.push({ content: "New Text", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1, width: 0, height: 0, baseW: 100, baseH: 50 }); 
             refreshInputs(); render(); 
         }
         
@@ -151,14 +160,14 @@
 
         function drawText(textObj, targetCtx, isActive) {
             if(!textObj.content && !isActive) return;
-            const content = textObj.content || "HOLDING";
+            const content = textObj.content || "";
             const lines = content.split('\\n');
             let fs = (canvas.width / 9) * textObj.size;
             targetCtx.save();
-            targetCtx.font = `bold ${fs}px "MemeImpact", Impact, sans-serif`;
+            targetCtx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
             let maxLineW = 0;
             lines.forEach(l => {
-                let m = targetCtx.measureText(l.toUpperCase()).width;
+                let m = targetCtx.measureText(l).width;
                 if(m > maxLineW) maxLineW = m;
             });
             textObj.baseW = maxLineW; textObj.baseH = fs * lines.length;
@@ -183,9 +192,9 @@
                 } else {
                     targetCtx.strokeStyle = document.getElementById('sCol').value; 
                     targetCtx.lineWidth = document.getElementById('s').value * (canvas.width/800);
-                    targetCtx.strokeText(line.toUpperCase(), 0, 0);
+                    targetCtx.strokeText(line, 0, 0);
                 }
-                targetCtx.fillStyle = 'white'; targetCtx.fillText(line.toUpperCase(), 0, 0);
+                targetCtx.fillStyle = 'white'; targetCtx.fillText(line, 0, 0);
                 targetCtx.restore();
             });
             targetCtx.restore();
@@ -273,7 +282,7 @@
         }
 
         function download() {
-            const link = document.createElement('a'); link.download = 'meme.jpg';
+            const link = document.createElement('a'); link.download = 'image.jpg';
             link.href = canvas.toDataURL('image/jpeg', 0.85); link.click();
         }
     </script>
