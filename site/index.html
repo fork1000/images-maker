@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        @font-face { font-family: 'TrueImpact'; src: url('https://cdn.jsdelivr.net/gh/rockthepiano/impact-font@master/impact.woff') format('woff'); }
+        * { box-sizing: border-box; }
+        body { background-color: #333; color: white; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .controls { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 8px; }
+        .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #444; padding: 10px; border-radius: 5px; font-size: 10px; }
+        canvas { max-width: 100%; height: auto; margin-top: 10px; background-color: #000; display: block; touch-action: pan-y; border: 1px solid #555; }
+        canvas.active-drag { border: 2px solid #e74c3c; touch-action: none; cursor: crosshair; }
+        .crop-container { width: 100%; height: 40vh; background: #222; display: none; margin-bottom: 10px; }
+        input[type="text"], button { padding: 10px; font-size: 14px; border: none; border-radius: 4px; }
+        button { cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .btn-up { background: #444; color: white; width: 100%; }
+        .btn-apply { background: #2ecc71; color: white; margin-top: 5px; width: 100%; }
+        .btn-save { background: #555; color: white; margin-top: 10px; margin-bottom: 20px; width: 100%; }
+        .btn-add { background: #3498db; color: white; width: 100%; }
+        .btn-done { background: #e74c3c; color: white; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 20px; font-size: 20px; border: none; border-radius: 0; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); letter-spacing: 2px; }
+        .text-row { display: flex; gap: 5px; width: 100%; }
+        .text-row input { flex-grow: 1; }
+        .btn-del { background: #e74c3c; color: white; width: 40px; }
+        .sub-settings { display: flex; gap: 10px; font-size: 9px; align-items: center; margin-bottom: 5px; }
+        .sub-settings input { height: 4px; flex-grow: 1; }
+        label { display: flex; flex-direction: column; gap: 2px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2 style="margin:5px 0">images maker</h2>
+        <button class="btn-up" onclick="document.getElementById('gallery').click()">upload</button>
+        <input type="file" id="gallery" accept="image/*" style="display:none">
+        <div id="cropWrap" class="crop-container"><img id="cropImg" style="display: block; max-width: 100%;"></div>
+        <button id="applyBtn" class="btn-apply" onclick="applyCrop()" style="display:none">apply crop</button>
+        <div id="textInputs" style="display: flex; flex-direction: column; gap: 5px;"></div>
+        <button class="btn-add" onclick="addText()">+ add text</button>
+        <div class="settings">
+            <label>Quality <input type="range" id="quality" min="1" max="100" value="100" oninput="render()"></label>
+            <label>Noise <input type="range" id="noise" min="0" max="100" value="0" onchange="processBaseAndRender()"></label>
+            <label>Contrast <input type="range" id="con" min="50" max="250" value="100" onchange="processBaseAndRender()"></label>
+            <label>Saturation <input type="range" id="sat" min="0" max="300" value="100" onchange="processBaseAndRender()"></label>
+            <label>Width <input type="range" id="w" min="0.5" max="1.2" step="0.01" value="0.93" oninput="render()"></label>
+            <label>Stroke <input type="range" id="s" min="0" max="20" value="5" oninput="render()"></label>
+            <label>Stroke Color <input type="color" id="sCol" value="#000000" oninput="render()"></label>
+            <label>Shadow Mode <input type="checkbox" id="shd" onchange="render()"></label>
+        </div>
+    </div>
+
+    <canvas id="memeCanvas"></canvas>
+    <button id="doneBtn" class="btn-done" onclick="finishMove()">DONE MOVING</button>
+
+    <div class="controls">
+        <button class="btn-save" onclick="download()">save</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script>
+        const canvas = document.getElementById('memeCanvas');
+        const ctx = canvas.getContext('2d');
+        const off = document.createElement('canvas'), proc = document.createElement('canvas'), textLayer = document.createElement('canvas');
+        const pctx = proc.getContext('2d'), tctx = textLayer.getContext('2d');
+        let cropper, baseImg = null, texts = [], activeDragIdx = null, holdTimer = null, isDraggingEnabled = false;
+
+        const impact = new FontFace('TrueImpact', 'url(https://cdn.jsdelivr.net/gh/rockthepiano/impact-font@master/impact.woff)');
+        impact.load().then(f => { document.fonts.add(f); refreshInputs(); render(); });
+
+        function refreshInputs() {
+            const container = document.getElementById('textInputs'); container.innerHTML = '';
+            texts.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.style.background = "#444"; div.style.padding = "5px"; div.style.borderRadius = "4px";
+                div.innerHTML = `<div class="text-row"><input type="text" placeholder="Blank" value="${t.content}" oninput="texts[${i}].content=this.value; render()"><button class="btn-del" onclick="removeText(${i})">X</button></div>
+                    <div class="sub-settings">S<input type="range" min="0.1" max="3" step="0.1" value="${t.size}" oninput="texts[${i}].size=this.value; render()">R<input type="range" min="-180" max="180" value="${t.rot}" oninput="texts[${i}].rot=this.value; render()">O<input type="range" min="0" max="1" step="0.1" value="${t.alpha}" oninput="texts[${i}].alpha=this.value; render()"></div>`;
+                container.appendChild(div);
+            });
+        }
+
+        function addText() { texts.push({ content: "", x: 0.5, y: 0.5, size: 1, rot: 0, alpha: 1, width: 0, height: 0 }); refreshInputs(); render(); }
+        function removeText(i) { texts.splice(i, 1); refreshInputs(); render(); }
+
+        document.getElementById('gallery').onchange = (e) => {
+            const file = e.target.files[0], reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
+                const el = document.getElementById('cropImg'); el.src = ev.target.result;
+                if(cropper) cropper.destroy(); cropper = new Cropper(el, { viewMode: 1, autoCropArea: 1 });
+            };
+            reader.readAsDataURL(file);
+        };
+
+        function applyCrop() {
+            baseImg = new Image();
+            baseImg.onload = () => {
+                canvas.width = off.width = proc.width = textLayer.width = baseImg.width;
+                canvas.height = off.height = proc.height = textLayer.height = baseImg.height;
+                off.getContext('2d').drawImage(baseImg, 0, 0);
+                document.getElementById('cropWrap').style.display = 'none'; document.getElementById('applyBtn').style.display = 'none';
+                processBaseAndRender();
+            };
+            baseImg.src = cropper.getCroppedCanvas().toDataURL();
+        }
+
+        function processBaseAndRender() {
+            if(!baseImg) return;
+            pctx.clearRect(0,0,proc.width,proc.height);
+            pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
+            pctx.drawImage(off, 0, 0); pctx.filter = 'none';
+            const noise = document.getElementById('noise').value;
+            if(noise > 0) {
+                const d = pctx.getImageData(0,0,proc.width,proc.height);
+                for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5) * noise; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
+                pctx.putImageData(d,0,0);
+            }
+            render();
+        }
+
+        function render() {
+            if(!baseImg) return;
+            const qVal = document.getElementById('quality').value;
+            tctx.clearRect(0,0,textLayer.width,textLayer.height);
+            tctx.drawImage(proc, 0, 0);
+            texts.forEach((t, i) => drawText(t, tctx, i === activeDragIdx));
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(qVal < 100) {
+                let s = Math.pow(qVal / 100, 3); if (s < 0.005) s = 0.005;
+                let tw = Math.max(1, canvas.width * s), th = Math.max(1, canvas.height * s);
+                let temp = document.createElement('canvas'); temp.width = tw; temp.height = th;
+                temp.getContext('2d').drawImage(textLayer, 0, 0, textLayer.width, textLayer.height, 0, 0, tw, th);
+                ctx.imageSmoothingEnabled = false; ctx.drawImage(temp, 0, 0, tw, th, 0, 0, canvas.width, canvas.height);
+            } else { ctx.drawImage(textLayer, 0, 0); }
+        }
+
+        function drawText(textObj, targetCtx, isActive) {
+            const content = textObj.content || (isActive ? "HOLDING" : ""); 
+            if(!content) { textObj.width = 0; textObj.height = 0; return; }
+            const lines = content.split('\\n');
+            let fs = (canvas.width / 9) * textObj.size;
+            targetCtx.save();
+            targetCtx.globalAlpha = textObj.alpha;
+            targetCtx.font = `${fs}px TrueImpact`; 
+            targetCtx.textAlign = 'center';
+            let maxLineW = 0;
+            lines.forEach(l => {
+                let m = targetCtx.measureText(l.toUpperCase()).width;
+                if(m > maxLineW) maxLineW = m;
+            });
+            textObj.width = maxLineW * document.getElementById('w').value;
+            textObj.height = fs * lines.length;
+            targetCtx.translate(canvas.width * textObj.x, canvas.height * textObj.y);
+            targetCtx.rotate(textObj.rot * Math.PI / 180);
+            if (isActive) {
+                targetCtx.strokeStyle = '#ff0000'; targetCtx.lineWidth = 4;
+                targetCtx.strokeRect(-textObj.width/1.8, -fs/1.2, textObj.width * 1.1, textObj.height);
+            }
+            lines.forEach((line, i) => {
+                targetCtx.save();
+                targetCtx.translate(0, i * fs * 0.9);
+                targetCtx.scale(document.getElementById('w').value, 0.95);
+                if(document.getElementById('shd').checked) { 
+                    targetCtx.shadowColor = document.getElementById('sCol').value; targetCtx.shadowBlur = document.getElementById('s').value;
+                } else {
+                    targetCtx.strokeStyle = document.getElementById('sCol').value; targetCtx.lineWidth = document.getElementById('s').value * (canvas.width/1000);
+                    targetCtx.strokeText(line.toUpperCase(), 0, 0);
+                }
+                targetCtx.fillStyle = 'white'; targetCtx.fillText(line.toUpperCase(), 0, 0);
+                targetCtx.restore();
+            });
+            targetCtx.restore();
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            if (isDraggingEnabled) return;
+            const rect = canvas.getBoundingClientRect();
+            const px = (e.clientX - rect.left) / rect.width;
+            const py = (e.clientY - rect.top) / rect.height;
+            let foundIdx = null;
+            texts.forEach((t, i) => {
+                const dx = Math.abs(px - t.x) * canvas.width;
+                const dy = Math.abs(py - t.y) * canvas.height;
+                if (dx < t.width/2 + 30 && dy < t.height/2 + 30) foundIdx = i;
+            });
+            if (foundIdx !== null) {
+                holdTimer = setTimeout(() => {
+                    activeDragIdx = foundIdx; isDraggingEnabled = true;
+                    canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display = 'block';
+                    canvas.setPointerCapture(e.pointerId); render();
+                }, 600);
+            }
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (!isDraggingEnabled || activeDragIdx === null || !canvas.hasPointerCapture(e.pointerId)) return;
+            const rect = canvas.getBoundingClientRect();
+            texts[activeDragIdx].x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            texts[activeDragIdx].y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+            render();
+        });
+
+        canvas.addEventListener('pointerup', (e) => { clearTimeout(holdTimer); });
+
+        function finishMove() {
+            isDraggingEnabled = false; activeDragIdx = null;
+            canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display = 'none';
+            render();
+        }
+
+        function download() {
+            const link = document.createElement('a'); link.download = 'meme.jpg';
+            link.href = canvas.toDataURL('image/jpeg', 0.85); link.click();
+        }
+    </script>
+</body>
+</html>
