@@ -6,78 +6,60 @@
     <title>Meme Maker Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
-        /* THE OLD DESIGN YOU LIKED */
         * { box-sizing: border-box; }
-        body { background-color: #1a1a1a; color: white; font-family: sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
-        .controls { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 8px; }
-        .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #333; padding: 10px; border-radius: 8px; font-size: 10px; border: 1px solid #444; }
-        canvas { max-width: 100%; height: auto; margin-top: 10px; background-color: #000; display: block; touch-action: none; border: 2px solid #333; }
-        input[type="text"], button { padding: 12px; font-size: 14px; border: none; border-radius: 6px; }
-        button { cursor: pointer; font-weight: bold; text-transform: uppercase; }
-        .btn-up { background: #444; color: white; width: 100%; }
-        .btn-apply { background: #2ecc71; color: white; margin-top: 5px; width: 100%; }
-        .btn-save { background: #f1c40f; color: black; margin: 15px 0 40px 0; width: 100%; font-size: 18px; }
-        .btn-add { background: #3498db; color: white; width: 100%; }
-        .text-row { display: flex; gap: 5px; width: 100%; }
-        .text-row input { flex-grow: 1; background: #fff; color: #000; font-weight: bold; }
-        .btn-del { background: #e74c3c; color: white; width: 45px; }
-        label { display: flex; flex-direction: column; gap: 2px; text-transform: uppercase; color: #bbb; }
-        #status { font-size: 10px; color: #32CD32; text-align: center; margin-bottom: 5px; }
+        body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        .controls { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
+        .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #222; padding: 15px; border-radius: 12px; border: 1px solid #333; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        canvas { max-width: 100%; height: auto; background-color: #000; display: block; touch-action: none; border: 2px solid #32CD32; border-radius: 4px; margin: 15px 0; }
+        input[type="text"] { background: #333; color: white; border: 1px solid #444; padding: 12px; border-radius: 8px; font-weight: bold; }
+        button { cursor: pointer; font-weight: 800; text-transform: uppercase; border-radius: 8px; border: none; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        .btn-up { background: #333; color: white; padding: 15px; border: 1px dashed #555; }
+        .btn-add { background: #007bff; color: white; padding: 12px; }
+        .btn-save { background: #32CD32; color: black; padding: 18px; font-size: 20px; margin-top: 10px; }
+        .text-row { display: flex; gap: 8px; background: #222; padding: 10px; border-radius: 10px; border: 1px solid #333; }
+        .btn-del { background: #ff4444; color: white; width: 50px; }
+        label { font-size: 11px; color: #aaa; }
+        .btn-done { background: #32CD32; color: black; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 25px; font-size: 22px; }
+        @font-face { font-family: 'ImpactReal'; src: url('impact.ttf'); }
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <div id="status">Checking for Impact...</div>
-        <button class="btn-up" onclick="document.getElementById('gallery').click()">1. UPLOAD IMAGE</button>
+        <button class="btn-up" onclick="document.getElementById('gallery').click()">📷 UPLOAD IMAGE</button>
         <input type="file" id="gallery" accept="image/*" style="display:none">
-        
-        <div id="cropWrap" style="display:none; height: 300px; overflow:hidden;"><img id="cropImg" style="max-width:100%;"></div>
-        <button id="applyBtn" class="btn-apply" onclick="applyCrop()" style="display:none">CONFIRM CROP</button>
-        
-        <div id="textInputs" style="display: flex; flex-direction: column; gap: 8px; margin: 10px 0;"></div>
+        <div id="cropWrap" style="display:none; height: 300px;"><img id="cropImg" style="max-width: 100%;"></div>
+        <button id="applyBtn" style="display:none; background:#2ecc71; color:white; padding:10px;" onclick="applyCrop()">APPLY CROP</button>
+        <div id="textInputs" style="display: flex; flex-direction: column; gap: 10px;"></div>
         <button class="btn-add" onclick="addText()">+ ADD TEXT</button>
-        
         <div class="settings">
-            <label>OUTLINE <input type="range" id="s" min="0" max="30" value="12" oninput="render()"></label>
-            <label>COLOR <input type="color" id="sCol" value="#000000" oninput="render()"></label>
-            <label>CONTRAST <input type="range" id="con" min="50" max="250" value="100" onchange="processBaseAndRender()"></label>
-            <label>SATURATION <input type="range" id="sat" min="0" max="300" value="100" onchange="processBaseAndRender()"></label>
+            <label>Stroke <input type="range" id="s" min="0" max="25" value="10" oninput="render()"></label>
+            <label>Stroke Color <input type="color" id="sCol" value="#000000" oninput="render()"></label>
+            <label>Contrast <input type="range" id="con" min="50" max="200" value="100" onchange="processBaseAndRender()"></label>
+            <label>Saturation <input type="range" id="sat" min="0" max="200" value="100" onchange="processBaseAndRender()"></label>
         </div>
     </div>
 
     <canvas id="memeCanvas"></canvas>
+    <button id="doneBtn" class="btn-done" onclick="finishMove()">DONE MOVING</button>
 
     <div class="controls">
-        <button class="btn-save" onclick="download()">SAVE IMAGE</button>
+        <button class="btn-save" onclick="download()">DOWNLOAD MEME</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
         const canvas = document.getElementById('memeCanvas');
         const ctx = canvas.getContext('2d');
-        const off = document.createElement('canvas'), proc = document.createElement('canvas');
-        const pctx = proc.getContext('2d');
-        const statusEl = document.getElementById('status');
+        const off = document.createElement('canvas'), proc = document.createElement('canvas'), textLayer = document.createElement('canvas');
+        const pctx = proc.getContext('2d'), tctx = textLayer.getContext('2d');
         
-        let cropper, baseImg = null, texts = [];
-
-        // --- THE ONLY WAY TO ENSURE IMPACT LOADS ---
-        const fontName = 'ImpactFont';
-        // We use the absolute relative path. Make sure file is 'impact.ttf' NOT 'Impact.ttf'
-        const myFont = new FontFace(fontName, 'url(impact.ttf)');
-
-        myFont.load().then((loadedFont) => {
-            document.fonts.add(loadedFont);
-            statusEl.innerText = "IMPACT LOADED!";
-            render();
-        }).catch(err => {
-            statusEl.style.color = "red";
-            statusEl.innerText = "FONT FILE NOT FOUND! Check filename.";
-        });
+        let cropper, baseImg = null, texts = [], activeDragIdx = null, isDraggingEnabled = false, dragMode = null;
+        let startPointerX, startPointerY, startTextX, startTextY, startScaleW, startScaleH, startHandleDist, startRot;
 
         function addText() { 
-            texts.push({ content: "NEW TEXT", x: 0.5, y: 0.5, size: 1.2 }); 
+            texts.push({ content: "TOP TEXT", x: 0.5, y: 0.2, size: 1.2, scaleW: 1, scaleH: 1, rot: 0, alpha: 1 }); 
             refreshInputs(); render(); 
         }
 
@@ -107,8 +89,8 @@
         function applyCrop() {
             baseImg = new Image();
             baseImg.onload = () => {
-                canvas.width = off.width = proc.width = baseImg.width;
-                canvas.height = off.height = proc.height = baseImg.height;
+                canvas.width = off.width = proc.width = textLayer.width = baseImg.width;
+                canvas.height = off.height = proc.height = textLayer.height = baseImg.height;
                 off.getContext('2d').drawImage(baseImg, 0, 0);
                 document.getElementById('cropWrap').style.display = 'none';
                 document.getElementById('applyBtn').style.display = 'none';
@@ -125,32 +107,98 @@
 
         function render() {
             if(!baseImg) return;
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            ctx.drawImage(proc, 0, 0);
-            texts.forEach(t => drawText(t, ctx));
+            tctx.clearRect(0,0,textLayer.width,textLayer.height);
+            tctx.drawImage(proc, 0, 0);
+            texts.forEach((t, i) => drawText(t, tctx, i === activeDragIdx));
+            ctx.drawImage(textLayer, 0, 0);
         }
 
-        function drawText(t, targetCtx) {
-            const content = t.content.toUpperCase();
-            let fs = (canvas.width / 9) * t.size;
-            
+        function drawText(textObj, targetCtx, isActive) {
+            const lines = textObj.content.toUpperCase().split('\\n');
+            let fs = (canvas.width / 8) * textObj.size;
             targetCtx.save();
-            // We use ONLY the loaded Impact name. No fallbacks allowed here so we can see if it fails.
-            targetCtx.font = `900 ${fs}px ImpactFont`;
+            targetCtx.font = `900 ${fs}px ImpactReal`;
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
-            
-            targetCtx.translate(canvas.width * t.x, canvas.height * t.y);
-            
-            targetCtx.strokeStyle = document.getElementById('sCol').value;
-            targetCtx.lineWidth = document.getElementById('s').value;
-            targetCtx.lineJoin = "round";
-            targetCtx.miterLimit = 2;
-            targetCtx.strokeText(content, 0, 0);
-            
-            targetCtx.fillStyle = 'white';
-            targetCtx.fillText(content, 0, 0);
+            let maxLineW = 0;
+            lines.forEach(l => {
+                let m = targetCtx.measureText(l).width;
+                if(m > maxLineW) maxLineW = m;
+            });
+            textObj.width = maxLineW * textObj.scaleW;
+            textObj.height = (fs * lines.length) * textObj.scaleH;
+            targetCtx.translate(canvas.width * textObj.x, canvas.height * textObj.y);
+            targetCtx.rotate(textObj.rot * Math.PI / 180);
+            if (isActive) {
+                targetCtx.strokeStyle = '#32CD32';
+                targetCtx.lineWidth = 4;
+                targetCtx.strokeRect(-textObj.width/2 - 20, -textObj.height/2 - 20, textObj.width + 40, textObj.height + 40);
+                targetCtx.fillStyle = '#32CD32';
+                targetCtx.fillRect(textObj.width/2 + 20, textObj.height/2 + 20, 30, 30);
+            }
+            lines.forEach((line, i) => {
+                targetCtx.save();
+                targetCtx.translate(0, (i - (lines.length-1)/2) * fs * 0.85);
+                targetCtx.scale(textObj.scaleW, textObj.scaleH);
+                targetCtx.strokeStyle = document.getElementById('sCol').value;
+                targetCtx.lineWidth = document.getElementById('s').value;
+                targetCtx.lineJoin = "round";
+                targetCtx.strokeText(line, 0, 0);
+                targetCtx.fillStyle = 'white';
+                targetCtx.fillText(line, 0, 0);
+                targetCtx.restore();
+            });
             targetCtx.restore();
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const ex = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const ey = (e.clientY - rect.top) * (canvas.height / rect.height);
+            texts.forEach((t, i) => {
+                const cx = t.x * canvas.width, cy = t.y * canvas.height;
+                const hx = cx + (t.width/2 + 35), hy = cy + (t.height/2 + 35);
+                if (Math.abs(ex - hx) < 40 && Math.abs(ey - hy) < 40) {
+                    activeDragIdx = i; dragMode = 'resize';
+                    startPointerX = ex; startPointerY = ey;
+                    startScaleW = t.scaleW; startScaleH = t.scaleH;
+                    startHandleDist = Math.hypot(ex - cx, ey - cy);
+                    document.getElementById('doneBtn').style.display = 'block';
+                    canvas.setPointerCapture(e.pointerId);
+                } else if (Math.abs(ex - cx) < t.width/2 + 20 && Math.abs(ey - cy) < t.height/2 + 20) {
+                    activeDragIdx = i; dragMode = 'move';
+                    startPointerX = ex; startPointerY = ey;
+                    startTextX = t.x; startTextY = t.y;
+                    document.getElementById('doneBtn').style.display = 'block';
+                    canvas.setPointerCapture(e.pointerId);
+                }
+            });
+            render();
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            if (activeDragIdx === null) return;
+            const rect = canvas.getBoundingClientRect();
+            const ex = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const ey = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const t = texts[activeDragIdx];
+            if (dragMode === 'move') {
+                t.x = startTextX + (ex - startPointerX) / canvas.width;
+                t.y = startTextY + (ey - startPointerY) / canvas.height;
+            } else if (dragMode === 'resize') {
+                const cx = t.x * canvas.width, cy = t.y * canvas.height;
+                const newDist = Math.hypot(ex - cx, ey - cy);
+                const ratio = newDist / startHandleDist;
+                t.scaleW = startScaleW * ratio;
+                t.scaleH = startScaleH * ratio;
+            }
+            render();
+        });
+
+        function finishMove() {
+            activeDragIdx = null; dragMode = null;
+            document.getElementById('doneBtn').style.display = 'none';
+            render();
         }
 
         function download() {
@@ -159,6 +207,7 @@
             link.href = canvas.toDataURL('image/jpeg', 0.9);
             link.click();
         }
+        document.fonts.ready.then(() => render());
     </script>
 </body>
 </html>
