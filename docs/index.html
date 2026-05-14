@@ -89,15 +89,17 @@
 <script>
     const canvas = document.getElementById('memeCanvas');
     const ctx = canvas.getContext('2d');
-    const off = document.createElement('canvas'), proc = document.createElement('canvas');
+    const off = document.createElement('canvas');
+    const proc = document.createElement('canvas');
     const pctx = proc.getContext('2d');
     
-    let cropper, baseImg = null, texts = [], activeDragIdx = null, holdTimer = null, isDraggingEnabled = false, dragMode = null;
+    let cropper, baseImg = null, texts = [], activeDragIdx = null, dragMode = null;
     let startPointerX, startPointerY, startTextX, startTextY, startScaleW, startScaleH, startHandleDist;
     let qualityPreviewImg = new Image();
 
     function refreshInputs() {
-        const container = document.getElementById('textInputs'); container.innerHTML = '';
+        const container = document.getElementById('textInputs');
+        container.innerHTML = '';
         texts.forEach((t, i) => {
             const div = document.createElement('div');
             div.className = 'text-block';
@@ -116,18 +118,27 @@
     }
 
     function addText() { 
-        texts.push({ content: "", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1 }); 
-        refreshInputs(); render(); 
+        texts.push({ content: "", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1, width: 0, height: 0 }); 
+        refreshInputs(); 
+        render(); 
     }
 
-    function removeText(i) { texts.splice(i, 1); refreshInputs(); render(); }
+    function removeText(i) { 
+        texts.splice(i, 1); 
+        if (activeDragIdx === i) activeDragIdx = null;
+        refreshInputs(); 
+        render(); 
+    }
 
     document.getElementById('gallery').onchange = (e) => {
         const file = e.target.files[0], reader = new FileReader();
         reader.onload = (ev) => {
-            document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
-            const el = document.getElementById('cropImg'); el.src = ev.target.result;
-            if(cropper) cropper.destroy(); cropper = new Cropper(el, { viewMode: 1 });
+            document.getElementById('cropWrap').style.display = 'block'; 
+            document.getElementById('applyBtn').style.display = 'block';
+            const el = document.getElementById('cropImg'); 
+            el.src = ev.target.result;
+            if(cropper) cropper.destroy(); 
+            cropper = new Cropper(el, { viewMode: 1 });
         };
         reader.readAsDataURL(file);
     };
@@ -138,7 +149,8 @@
             canvas.width = off.width = proc.width = baseImg.width;
             canvas.height = off.height = proc.height = baseImg.height;
             off.getContext('2d').drawImage(baseImg, 0, 0);
-            document.getElementById('cropWrap').style.display = 'none'; document.getElementById('applyBtn').style.display = 'none';
+            document.getElementById('cropWrap').style.display = 'none'; 
+            document.getElementById('applyBtn').style.display = 'none';
             processBaseAndRender();
         };
         baseImg.src = cropper.getCroppedCanvas().toDataURL();
@@ -152,7 +164,10 @@
         const n = document.getElementById('noise').value;
         if(n > 0) {
             const d = pctx.getImageData(0,0,proc.width,proc.height);
-            for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*n; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
+            for(let i=0; i<d.data.length; i+=4) { 
+                let r = (Math.random()-0.5)*n; 
+                d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; 
+            }
             pctx.putImageData(d,0,0);
         }
         render();
@@ -174,6 +189,7 @@
         target.save();
         target.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
         target.textAlign = 'center';
+        target.textBaseline = 'middle';
         target.globalAlpha = t.alpha;
         
         const txt = t.content || " ";
@@ -185,22 +201,32 @@
         target.rotate(t.rot * Math.PI / 180);
         
         if(active) {
-            target.strokeStyle = '#32CD32'; target.lineWidth = 2;
-            target.strokeRect(-t.width/2 - 10, -t.height/1.2, t.width + 20, t.height * 1.2);
-            target.fillStyle = '#ff4436'; target.fillRect(t.width/2 + 5, -t.height/1.2 - 30, 40, 40); 
-            target.fillStyle = '#3498db'; target.fillRect(t.width/2 + 10, -20, 30, 30); 
-            target.fillStyle = '#2ecc71'; target.fillRect(-15, t.height/2 + 5, 30, 30); 
+            target.strokeStyle = '#32CD32'; 
+            target.lineWidth = 4;
+            target.strokeRect(-t.width/2 - 15, -t.height/2 - 15, t.width + 30, t.height + 30);
+            
+            target.fillStyle = '#ff4436'; 
+            target.fillRect(t.width/2 + 10, -t.height/2 - 50, 50, 50); 
+            
+            target.fillStyle = '#3498db'; 
+            target.fillRect(t.width/2 + 20, -25, 40, 50); 
+            
+            target.fillStyle = '#2ecc71'; 
+            target.fillRect(-25, t.height/2 + 20, 50, 40); 
         }
 
         if(t.content) {
             target.scale(t.scaleW, t.scaleH);
             if(document.getElementById('shd').checked) {
-                target.shadowColor = document.getElementById('sCol').value; target.shadowBlur = document.getElementById('s').value;
+                target.shadowColor = document.getElementById('sCol').value; 
+                target.shadowBlur = document.getElementById('s').value;
             } else {
-                target.strokeStyle = document.getElementById('sCol').value; target.lineWidth = document.getElementById('s').value;
+                target.strokeStyle = document.getElementById('sCol').value; 
+                target.lineWidth = document.getElementById('s').value;
                 target.strokeText(txt, 0, 0);
             }
-            target.fillStyle = 'white'; target.fillText(txt, 0, 0);
+            target.fillStyle = 'white'; 
+            target.fillText(txt, 0, 0);
         }
         target.restore();
     }
@@ -210,37 +236,65 @@
         const ex = (e.clientX - rect.left) * (canvas.width / rect.width);
         const ey = (e.clientY - rect.top) * (canvas.height / rect.height);
         
-        if (isDraggingEnabled && activeDragIdx !== null) {
+        if (activeDragIdx !== null) {
             const t = texts[activeDragIdx];
             const cx = t.x * canvas.width, cy = t.y * canvas.height;
             const angle = -t.rot * Math.PI / 180;
             const lx = (ex - cx) * Math.cos(angle) - (ey - cy) * Math.sin(angle);
             const ly = (ex - cx) * Math.sin(angle) + (ey - cy) * Math.cos(angle);
             
-            if (lx > t.width/2 && ly < -t.height/2) { dragMode = 'size'; startScaleW = t.scaleW; startHandleDist = Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return; }
-            if (lx > t.width/2) { dragMode = 'width'; startScaleW = t.scaleW; startHandleDist = lx; canvas.setPointerCapture(e.pointerId); return; }
-            if (ly > t.height/2) { dragMode = 'height'; startScaleH = t.scaleH; startHandleDist = ly; canvas.setPointerCapture(e.pointerId); return; }
+            if (lx > t.width/2 && ly < -t.height/2) { 
+                dragMode = 'size'; 
+                startScaleW = t.scaleW; 
+                startHandleDist = Math.sqrt(lx*lx+ly*ly); 
+                canvas.setPointerCapture(e.pointerId); 
+                return; 
+            }
+            if (lx > t.width/2) { 
+                dragMode = 'width'; 
+                startScaleW = t.scaleW; 
+                startHandleDist = lx; 
+                canvas.setPointerCapture(e.pointerId); 
+                return; 
+            }
+            if (ly > t.height/2) { 
+                dragMode = 'height'; 
+                startScaleH = t.scaleH; 
+                startHandleDist = ly; 
+                canvas.setPointerCapture(e.pointerId); 
+                return; 
+            }
         }
 
         let found = null;
-        texts.forEach((t, i) => {
+        for (let i = texts.length - 1; i >= 0; i--) {
+            const t = texts[i];
             const dx = Math.abs(ex - t.x * canvas.width);
             const dy = Math.abs(ey - t.y * canvas.height);
-            if(dx < 100 && dy < 50) found = i;
-        });
+            if(dx < (t.width/2 + 20) && dy < (t.height/2 + 20)) {
+                found = i;
+                break;
+            }
+        }
 
         if(found !== null) {
-            startPointerX = ex; startPointerY = ey; startTextX = texts[found].x; startTextY = texts[found].y;
-            holdTimer = setTimeout(() => {
-                activeDragIdx = found; isDraggingEnabled = true; dragMode = 'move';
-                canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display = 'block';
-                canvas.setPointerCapture(e.pointerId); render();
-            }, 400);
+            activeDragIdx = found;
+            dragMode = 'move';
+            startPointerX = ex; 
+            startPointerY = ey; 
+            startTextX = texts[found].x; 
+            startTextY = texts[found].y;
+            canvas.classList.add('active-drag'); 
+            document.getElementById('doneBtn').style.display = 'block';
+            canvas.setPointerCapture(e.pointerId);
+            render();
+        } else {
+            finishMove();
         }
     });
 
     canvas.addEventListener('pointermove', (e) => {
-        if(!isDraggingEnabled || activeDragIdx === null || !canvas.hasPointerCapture(e.pointerId)) return;
+        if(activeDragIdx === null || !canvas.hasPointerCapture(e.pointerId)) return;
         const rect = canvas.getBoundingClientRect();
         const ex = (e.clientX - rect.left) * (canvas.width / rect.width);
         const ey = (e.clientY - rect.top) * (canvas.height / rect.height);
@@ -260,24 +314,26 @@
                 t.scaleW *= r; t.scaleH *= r; 
                 startHandleDist = Math.sqrt(lx*lx+ly*ly); 
             }
-            if (dragMode === 'width') { t.scaleW = Math.max(0.1, startScaleW * (lx / startHandleDist)); }
-            if (dragMode === 'height') { t.scaleH = Math.max(0.1, startScaleH * (ly / startHandleDist)); }
+            if (dragMode === 'width') t.scaleW = Math.max(0.1, startScaleW * (lx / startHandleDist));
+            if (dragMode === 'height') t.scaleH = Math.max(0.1, startScaleH * (ly / startHandleDist));
         }
         render();
     });
 
-    canvas.addEventListener('pointerup', () => { clearTimeout(holdTimer); if(dragMode!=='move') dragMode = null; });
+    canvas.addEventListener('pointerup', () => { dragMode = null; });
 
     function finishMove() {
-        isDraggingEnabled = false; activeDragIdx = null; dragMode = null;
-        canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display = 'none'; render();
+        activeDragIdx = null; 
+        dragMode = null;
+        canvas.classList.remove('active-drag'); 
+        document.getElementById('doneBtn').style.display = 'none'; 
+        render();
     }
 
     function download() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let fileName = '';
         for (let i = 0; i < 25; i++) fileName += chars.charAt(Math.floor(Math.random() * chars.length));
-
         const q = parseFloat(document.getElementById('quality').value) / 100;
         const link = document.createElement('a');
         link.download = fileName + '.jpg';
