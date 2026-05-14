@@ -29,7 +29,7 @@
         .text-block { margin-bottom: 20px; }
         .input-row { display: flex; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
         .input-row input[type="text"] { flex-grow: 1; padding: 12px; border: none; font-size: 18px; color: #666; font-weight: bold; outline: none; }
-        .btn-del { background: var(--btn-red); color: white; width: 55px; font-size: 22px; margin-bottom: 0; border-radius: 0; }
+        .btn-del { background: var(--btn-red); color: white; width: 55px; font-size: 22px; border-radius: 0; margin-bottom: 0; }
         
         .sro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
         .sro-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #999; }
@@ -68,7 +68,7 @@
     <button class="btn-add" onclick="addText()">+ ADD TEXT</button>
 
     <div class="settings-grid">
-        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="90"></div>
+        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="render()"></div>
         <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBaseAndRender()"></div>
@@ -94,6 +94,7 @@
     
     let cropper, baseImg = null, texts = [], activeDragIdx = null, holdTimer = null, isDraggingEnabled = false, dragMode = null;
     let startPointerX, startPointerY, startTextX, startTextY, startScaleW, startScaleH, startHandleDist;
+    let qualityPreviewImg = new Image();
 
     function refreshInputs() {
         const container = document.getElementById('textInputs'); container.innerHTML = '';
@@ -102,7 +103,7 @@
             div.className = 'text-block';
             div.innerHTML = `
                 <div class="input-row">
-                    <input type="text" placeholder="Type here..." value="${t.content}" oninput="texts[${i}].content=this.value; render()">
+                    <input type="text" placeholder="" value="${t.content}" oninput="texts[${i}].content=this.value; render()">
                     <button class="btn-del" onclick="removeText(${i})">X</button>
                 </div>
                 <div class="sro-grid">
@@ -159,9 +160,14 @@
 
     function render() {
         if(!baseImg) return;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(proc, 0, 0);
-        texts.forEach((t, i) => drawText(t, ctx, i === activeDragIdx));
+        const q = parseFloat(document.getElementById('quality').value) / 100;
+        
+        qualityPreviewImg.onload = () => {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.drawImage(qualityPreviewImg, 0, 0);
+            texts.forEach((t, i) => drawText(t, ctx, i === activeDragIdx));
+        };
+        qualityPreviewImg.src = proc.toDataURL('image/jpeg', q);
     }
 
     function drawText(t, target, active) {
