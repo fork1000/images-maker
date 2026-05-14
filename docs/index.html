@@ -51,9 +51,11 @@
 
     <div class="settings-grid">
         <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="queueQuality()"></div>
-        <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
+        <div class="control-item"><label>NOISE (B&W)</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
         <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBase()"></div>
         <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBase()"></div>
+        <div class="control-item"><label>VIGNETTE</label><input type="range" id="vig" min="0" max="100" value="0" onchange="processBase()"></div>
+        <div class="control-item"><label>RGB GLITCH</label><input type="range" id="gli" min="0" max="150" value="0" onchange="processBase()"></div>
         <div class="control-item"><label>STROKE</label><input type="range" id="s" min="0" max="20" value="5" oninput="requestRender()"></div>
         <div class="control-item"><label>STROKE COLOR</label><div class="swatch-box" id="cDisp"><input type="color" id="sCol" value="#000000" oninput="document.getElementById('cDisp').style.background=this.value; requestRender()"></div></div>
         <div class="control-item"><label>SHADOW MODE</label><input type="checkbox" id="shd" onchange="requestRender()" style="width:25px; height:25px;"></div>
@@ -92,7 +94,7 @@
         const url = URL.createObjectURL(file); const el = document.getElementById('cropImg');
         document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
         if(cropper) cropper.destroy();
-        el.onload = () => { cropper = new Cropper(el, {viewMode:1}); };
+        el.onload = () => { cropper = new Cropper(el, {viewMode:1, autoCropArea:1}); };
         el.src = url;
         e.target.value = '';
     };
@@ -114,14 +116,46 @@
 
     function processBase() {
         if(!baseImg) return;
+        const w = proc.width, h = proc.height;
+        
+        // 1. Apply Contrast/Sat
         pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
         pctx.drawImage(off, 0, 0);
-        const n = document.getElementById('noise').value;
-        if(n > 0) {
-            const d = pctx.getImageData(0,0,proc.width,proc.height);
-            for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*n; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
-            pctx.putImageData(d,0,0);
+        pctx.filter = 'none';
+
+        // 2. Get Data for Pixel-Level Noise/Glitch
+        const imageData = pctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        const nVal = parseInt(document.getElementById('noise').value);
+        const gVal = parseInt(document.getElementById('gli').value);
+
+        if (nVal > 0 || gVal > 0) {
+            for (let i = 0; i < data.length; i += 4) {
+                // Shared B&W Noise
+                if (nVal > 0) {
+                    let r = (Math.random() - 0.5) * nVal;
+                    data[i] += r; data[i+1] += r; data[i+2] += r;
+                }
+                // Independent RGB Particles (The Glitch)
+                if (gVal > 0) {
+                    data[i] += (Math.random() - 0.5) * gVal;     // Red noise
+                    data[i+1] += (Math.random() - 0.5) * gVal;   // Green noise
+                    data[i+2] += (Math.random() - 0.5) * gVal;   // Blue noise
+                }
+            }
+            pctx.putImageData(imageData, 0, 0);
         }
+
+        // 3. Vignette
+        const vVal = document.getElementById('vig').value;
+        if(vVal > 0) {
+            const grad = pctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.sqrt(w*w + h*h)/2);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(1, `rgba(0,0,0,${vVal/100})`);
+            pctx.fillStyle = grad;
+            pctx.fillRect(0,0,w,h);
+        }
+
         queueQuality();
     }
 
@@ -223,7 +257,7 @@
         temp.toBlob((blob) => {
             const url = URL.createObjectURL(blob);
             const l = document.createElement('a');
-            l.download = 'meme_' + Date.now() + '.jpg';
+            l.download = 'img_' + Date.now() + '.jpg';
             l.href = url;
             document.body.appendChild(l);
             l.click();
