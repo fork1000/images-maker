@@ -51,7 +51,7 @@
 
     <div class="settings-grid">
         <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="queueQuality()"></div>
-        <div class="control-item"><label>NOISE (B&W)</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
+        <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
         <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBase()"></div>
         <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBase()"></div>
         <div class="control-item"><label>VIGNETTE</label><input type="range" id="vig" min="0" max="100" value="0" onchange="processBase()"></div>
@@ -68,7 +68,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
-    // [Internal Logic remains same for processing filters and text]
+    // [Core Logic Kept Identical]
     const canvas = document.getElementById('memeCanvas'), ctx = canvas.getContext('2d', {alpha: false});
     const off = document.createElement('canvas'), proc = document.createElement('canvas'), pctx = proc.getContext('2d', {alpha: false});
     const qCache = document.createElement('canvas'), qctx = qCache.getContext('2d', {alpha: false});
@@ -96,8 +96,7 @@
         document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
         if(cropper) cropper.destroy();
         el.onload = () => { cropper = new Cropper(el, {viewMode:1, autoCropArea:1}); };
-        el.src = url;
-        e.target.value = '';
+        el.src = url; e.target.value = '';
     };
 
     function applyCrop() {
@@ -176,7 +175,6 @@
         });
     }
 
-    // Pointer events for dragging... [truncated for brevity, keep your existing drag logic here]
     canvas.addEventListener('pointerdown', (e) => {
         const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height);
         if(activeDragIdx !== null) {
@@ -210,7 +208,7 @@
     canvas.addEventListener('pointerup', stopDrag);
     function finishMove() { activeDragIdx=null; dragMode=null; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; requestRender(); }
 
-    // --- NEW "NUCLEAR" DOWNLOAD METHOD ---
+    // --- DOWNLOAD PORTAL LOGIC ---
     function download() {
         if(!baseImg) return;
         const temp = document.createElement('canvas'); temp.width=canvas.width; temp.height=canvas.height;
@@ -228,11 +226,32 @@
         });
         
         const dataUrl = temp.toDataURL('image/jpeg', document.getElementById('quality').value/100);
+        const fileName = 'img_' + Date.now() + '.jpg';
         
-        // Open the image in a new tab. 
-        // User then simply saves the image from that tab.
         const newTab = window.open();
-        newTab.document.write('<title>Save Image</title><body style="margin:0;background:#222;display:flex;align-items:center;justify-content:center;"><img src="' + dataUrl + '" style="max-width:100%; cursor:pointer;" onclick="window.close()" title="Click to close, Long-press to Save"></body>');
+        newTab.document.write(`
+            <html>
+            <head>
+                <title>Download Image</title>
+                <style>
+                    body { background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+                    img { max-width: 100%; max-height: 70vh; border: 2px solid #444; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 30px; }
+                    .dl-btn { background: #009ce2; color: white; text-decoration: none; padding: 20px 40px; border-radius: 8px; font-weight: bold; font-size: 20px; text-transform: uppercase; box-shadow: 0 4px 0 #007bb1; transition: transform 0.1s; }
+                    .dl-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #007bb1; }
+                    p { color: #888; margin-top: 15px; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <img src="${dataUrl}">
+                <a href="${dataUrl}" download="${fileName}" class="dl-btn">DOWNLOAD IMAGE</a>
+                <p>If button fails, long-press the image to save.</p>
+                <script>
+                    // Close the tab after a delay when clicking download (optional)
+                    // document.querySelector('.dl-btn').onclick = () => { setTimeout(() => window.close(), 1000); };
+                <\/script>
+            </body>
+            </html>
+        `);
     }
 </script>
 </body>
