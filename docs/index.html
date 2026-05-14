@@ -1,201 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>images maker</title>
-<link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css](https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css)">
-<style>
-:root { --bg-color: #2c2c2c; --control-bg: #333333; --btn-dark: #444; --btn-blue: #009ce2; --btn-red: #ff4444; }
-* { box-sizing: border-box; }
-body { background-color: var(--bg-color); color: white; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
-.ui-wrapper { width: 100%; max-width: 500px; padding: 15px; }
-h1 { margin: 0 0 15px 0; font-size: 28px; font-weight: bold; align-self: flex-start; }
-button { width: 100%; border: none; border-radius: 4px; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 16px; margin-bottom: 12px; }
-.btn-upload { background: var(--btn-dark); color: #fff; }
-.btn-add { background: var(--btn-blue); color: white; margin-bottom: 15px; text-transform: none; }
-.btn-save { background: var(--btn-dark); color: white; margin-top: 15px; }
-.btn-done { background: #32CD32; color: black; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 25px; }
-.text-block { margin-bottom: 20px; }
-.input-row { display: flex; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
-.input-row input[type="text"] { flex-grow: 1; padding: 12px; border: none; font-size: 18px; color: #666; font-weight: bold; outline: none; }
-.btn-del { background: var(--btn-red); color: white; width: 55px; font-size: 22px; border-radius: 0; margin-bottom: 0; }
-.sro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
-.sro-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #999; }
-.sro-grid input { flex: 1; accent-color: var(--btn-blue); height: 3px; cursor: pointer; }
-.opacity-cell { grid-row: 2; grid-column: 1; }
-.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: var(--control-bg); padding: 15px; border-radius: 4px; margin-top: 10px; }
-.control-item { display: flex; flex-direction: column; gap: 8px; }
-.control-item label { font-size: 12px; text-transform: uppercase; color: #ccc; }
-.control-item input[type="range"] { accent-color: var(--btn-blue); width: 100%; }
-.swatch-box { width: 60px; height: 30px; background: black; border: 3px solid white; position: relative; }
-input[type="color"] { opacity: 0; width: 100%; height: 100%; cursor: pointer; position: absolute; top:0; left:0; }
-.canvas-container { width: 100%; background: var(--control-bg); padding: 10px; border-radius: 4px; margin-top: 10px; }
-canvas { width: 100%; background: #000; display: block; touch-action: none; }
-canvas.active-drag { outline: 3px solid #32CD32; }
-#cropWrap { width: 100%; display: none; background: #000; margin-bottom: 10px; padding: 10px; }
-@font-face { font-family: 'ImpactCustom'; src: url('impact.ttf'); font-weight: normal; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>images maker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <style>
+        :root { --bg-color: #2c2c2c; --control-bg: #333333; --btn-dark: #444; --btn-blue: #009ce2; --btn-red: #ff4444; }
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: white; font-family: sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        .ui-wrapper { width: 100%; max-width: 500px; padding: 15px; }
+        h1 { margin: 0 0 15px 0; font-size: 28px; font-weight: bold; align-self: flex-start; }
+        button { width: 100%; border: none; border-radius: 4px; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 16px; margin-bottom: 12px; }
+        .btn-upload { background: var(--btn-dark); color: #fff; }
+        .btn-add { background: var(--btn-blue); color: white; margin-bottom: 15px; text-transform: none; }
+        .btn-save { background: var(--btn-dark); color: white; margin-top: 15px; }
+        .btn-done { background: #32CD32; color: black; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 25px; }
+        .text-block { margin-bottom: 20px; }
+        .input-row { display: flex; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+        .input-row input[type="text"] { flex-grow: 1; padding: 12px; border: none; font-size: 18px; color: #666; font-weight: bold; outline: none; }
+        .btn-del { background: var(--btn-red); color: white; width: 55px; font-size: 22px; border-radius: 0; margin-bottom: 0; }
+        .sro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
+        .sro-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #999; }
+        .sro-grid input { flex: 1; accent-color: var(--btn-blue); height: 3px; cursor: pointer; }
+        .opacity-cell { grid-row: 2; grid-column: 1; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: var(--control-bg); padding: 15px; border-radius: 4px; margin-top: 10px; }
+        .control-item { display: flex; flex-direction: column; gap: 8px; }
+        .control-item label { font-size: 12px; text-transform: uppercase; color: #ccc; }
+        .control-item input[type="range"] { accent-color: var(--btn-blue); width: 100%; }
+        .swatch-box { width: 60px; height: 30px; background: black; border: 3px solid white; position: relative; }
+        input[type="color"] { opacity: 0; width: 100%; height: 100%; cursor: pointer; position: absolute; top:0; left:0; }
+        .canvas-container { width: 100%; background: var(--control-bg); padding: 10px; border-radius: 4px; margin-top: 10px; }
+        canvas { width: 100%; background: #000; display: block; touch-action: none; }
+        canvas.active-drag { outline: 3px solid #32CD32; }
+        #cropWrap { width: 100%; display: none; background: #000; margin-bottom: 10px; padding: 10px; }
+        @font-face { font-family: 'ImpactCustom'; src: url('impact.ttf'); font-weight: normal; }
+    </style>
 </head>
 <body>
 <div class="ui-wrapper">
-<h1>images maker</h1>
-<button class="btn-upload" onclick="document.getElementById('gallery').click()">UPLOAD</button>
-<input type="file" id="gallery" accept="image/*" style="display:none">
-<div id="cropWrap"><img id="cropImg" style="max-width: 100%;"></div>
-<button id="applyBtn" class="btn-add" onclick="applyCrop()" style="display:none; background:#2ecc71;">CONFIRM CROP</button>
-<div id="textInputs"></div>
-<button class="btn-add" onclick="addText()">+ ADD TEXT</button>
-<div class="settings-grid">
-<div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="queueQuality()"></div>
-<div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
-<div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBase()"></div>
-<div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBase()"></div>
-<div class="control-item"><label>STROKE</label><input type="range" id="s" min="0" max="20" value="5" oninput="requestRender()"></div>
-<div class="control-item"><label>STROKE COLOR</label><div class="swatch-box" id="cDisp"><input type="color" id="sCol" value="#000000" oninput="document.getElementById('cDisp').style.background=this.value; requestRender()"></div></div>
-<div class="control-item"><label>SHADOW MODE</label><input type="checkbox" id="shd" onchange="requestRender()" style="width:25px; height:25px;"></div>
-</div>
-<div class="canvas-container"><canvas id="memeCanvas"></canvas></div>
-<button class="btn-save" onclick="download()">SAVE</button>
+    <h1>images maker</h1>
+    <button class="btn-upload" onclick="document.getElementById('gallery').click()">UPLOAD</button>
+    <input type="file" id="gallery" accept="image/*" style="display:none">
+    <div id="cropWrap"><img id="cropImg" style="max-width: 100%;"></div>
+    <button id="applyBtn" class="btn-add" onclick="applyCrop()" style="display:none; background:#2ecc71;">CONFIRM CROP</button>
+    <div id="textInputs"></div>
+    <button class="btn-add" onclick="addText()">+ ADD TEXT</button>
+    <div class="settings-grid">
+        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="queueQuality()"></div>
+        <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBase()"></div>
+        <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBase()"></div>
+        <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBase()"></div>
+        <div class="control-item"><label>STROKE</label><input type="range" id="s" min="0" max="20" value="5" oninput="requestRender()"></div>
+        <div class="control-item"><label>STROKE COLOR</label><div class="swatch-box" id="cDisp"><input type="color" id="sCol" value="#000000" oninput="document.getElementById('cDisp').style.background=this.value; requestRender()"></div></div>
+        <div class="control-item"><label>SHADOW MODE</label><input type="checkbox" id="shd" onchange="requestRender()" style="width:25px; height:25px;"></div>
+    </div>
+    <div class="canvas-container"><canvas id="memeCanvas"></canvas></div>
+    <button class="btn-save" onclick="download()">SAVE</button>
 </div>
 <button id="doneBtn" class="btn-done" onclick="finishMove()">✓ DONE EDITING</button>
-<script src="[https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js](https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js)"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
-const canvas = document.getElementById('memeCanvas'), ctx = canvas.getContext('2d', {alpha: false});
-const off = document.createElement('canvas'), proc = document.createElement('canvas'), pctx = proc.getContext('2d', {alpha: false});
-const qCache = document.createElement('canvas'), qctx = qCache.getContext('2d', {alpha: false});
-let cropper, baseImg = null, texts = [], activeDragIdx = null, dragMode = null, isUpdatingQ = false, needsQ = false;
-let startX, startY, startTX, startTY, startSW, startSH, startDist, rafPending = false;
-function refreshInputs() {
-const container = document.getElementById('textInputs'); container.innerHTML = '';
-texts.forEach((t, i) => {
-const div = document.createElement('div'); div.className = 'text-block';
-div.innerHTML = <div class="input-row"><input type="text" value="${t.content}" oninput="texts[${i}].content=this.value; requestRender()"><button class="btn-del" onclick="removeText(${i})">X</button></div> <div class="sro-grid"><label>S <input type="range" min="0.1" max="5" step="0.1" value="${t.size}" oninput="texts[${i}].size=parseFloat(this.value); requestRender()"></label> <label>R <input type="range" min="-180" max="180" value="${t.rot}" oninput="texts[${i}].rot=this.value; requestRender()"></label> <label class="opacity-cell">O <input type="range" min="0" max="1" step="0.1" value="${t.alpha}" oninput="texts[${i}].alpha=this.value; requestRender()"></label></div>;
-container.appendChild(div);
-});
-}
-function addText() { texts.push({content:"", x:0.5, y:0.5, size:1, scaleW:1, scaleH:1, rot:0, alpha:1, w:0, h:0}); refreshInputs(); requestRender(); }
-function removeText(i) { texts.splice(i,1); if(activeDragIdx===i) activeDragIdx=null; refreshInputs(); requestRender(); }
-document.getElementById('gallery').onchange = (e) => {
-const reader = new FileReader();
-reader.onload = (ev) => {
-document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
-const el = document.getElementById('cropImg'); el.src = ev.target.result;
-if(cropper) cropper.destroy(); cropper = new Cropper(el, {viewMode:1});
-};
-reader.readAsDataURL(e.target.files[0]);
-};
-function applyCrop() {
-baseImg = new Image();
-baseImg.onload = () => {
-canvas.width = off.width = proc.width = qCache.width = baseImg.width;
-canvas.height = off.height = proc.height = qCache.height = baseImg.height;
-off.getContext('2d').drawImage(baseImg, 0, 0);
-document.getElementById('cropWrap').style.display = 'none'; document.getElementById('applyBtn').style.display = 'none';
-processBase();
-};
-baseImg.src = cropper.getCroppedCanvas().toDataURL();
-}
-function processBase() {
-if(!baseImg) return;
-pctx.filter = contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%);
-pctx.drawImage(off, 0, 0);
-const n = document.getElementById('noise').value;
-if(n > 0) {
-const d = pctx.getImageData(0,0,proc.width,proc.height);
-for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*n; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
-pctx.putImageData(d,0,0);
-}
-updateQuality();
-}
-function queueQuality() { needsQ = true; if(!isUpdatingQ) updateQuality(); }
-function updateQuality() {
-if(!baseImg) return; isUpdatingQ = true; needsQ = false;
-const img = new Image();
-img.onload = () => { qctx.drawImage(img, 0, 0); requestRender(); isUpdatingQ = false; if(needsQ) updateQuality(); };
-img.src = proc.toDataURL('image/jpeg', document.getElementById('quality').value/100);
-}
-function requestRender() { if(!rafPending) { rafPending = true; requestAnimationFrame(render); } }
-function render() {
-rafPending = false; if(!baseImg) return;
-ctx.drawImage(qCache, 0, 0);
-texts.forEach((t, i) => {
-const fs = (canvas.width/10)*t.size;
-ctx.save();
-ctx.font = ${fs}px "ImpactCustom", Impact, sans-serif;
-ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-const m = ctx.measureText(t.content||" ");
-t.w = m.width*t.scaleW; t.h = fs*t.scaleH;
-ctx.translate(canvas.width*t.x, canvas.height*t.y);
-ctx.rotate(t.rot*Math.PI/180);
-if(i === activeDragIdx) {
-ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4;
-ctx.strokeRect(-t.w/2-15, -t.h/2-15, t.w+30, t.h+30);
-ctx.fillStyle = '#ff4436'; ctx.fillRect(t.w/2+10, -t.h/2-60, 50, 50); // Scale
-ctx.fillStyle = '#3498db'; ctx.fillRect(t.w/2+20, -25, 40, 50); // Width
-ctx.fillStyle = '#2ecc71'; ctx.fillRect(-25, t.h/2+20, 50, 40); // Height
-}
-if(t.content) {
-ctx.globalAlpha = t.alpha; ctx.scale(t.scaleW, t.scaleH);
-if(document.getElementById('shd').checked) { ctx.shadowColor=document.getElementById('sCol').value; ctx.shadowBlur=document.getElementById('s').value; }
-else { ctx.strokeStyle=document.getElementById('sCol').value; ctx.lineWidth=document.getElementById('s').value; ctx.strokeText(t.content,0,0); }
-ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
-}
-ctx.restore();
-});
-}
-canvas.addEventListener('pointerdown', (e) => {
-const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height);
-if(activeDragIdx !== null) {
-const t = texts[activeDragIdx], cx = t.x*canvas.width, cy = t.y*canvas.height, ang = -t.rot*Math.PI/180;
-const lx = (ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly = (ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
-if(lx>t.w/2 && ly<-t.h/2) { dragMode='size'; startSW=t.scaleW; startDist=Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return; }
-if(lx>t.w/2) { dragMode='width'; startSW=t.scaleW; startDist=lx; canvas.setPointerCapture(e.pointerId); return; }
-if(ly>t.h/2) { dragMode='height'; startSH=t.scaleH; startDist=ly; canvas.setPointerCapture(e.pointerId); return; }
-}
-let f = null;
-for(let i=texts.length-1; i>=0; i--) {
-const t=texts[i]; if(Math.abs(ex-t.x*canvas.width)<(t.w/2+40) && Math.abs(ey-t.y*canvas.height)<(t.h/2+40)) { f=i; break; }
-}
-if(f !== null) {
-activeDragIdx=f; dragMode='move'; startX=ex; startY=ey; startTX=texts[f].x; startTY=texts[f].y;
-canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display='block';
-canvas.setPointerCapture(e.pointerId); requestRender();
-} else finishMove();
-});
-canvas.addEventListener('pointermove', (e) => {
-if(activeDragIdx===null || !canvas.hasPointerCapture(e.pointerId)) return;
-const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height), t = texts[activeDragIdx];
-if(dragMode==='move') { t.x=startTX+(ex-startX)/canvas.width; t.y=startTY+(ey-startY)/canvas.height; }
-else {
-const cx=t.x*canvas.width, cy=t.y*canvas.height, ang=-t.rot*Math.PI/180;
-const lx=(ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly=(ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
-if(dragMode==='size') { const r=Math.sqrt(lx*lx+ly*ly)/startDist; t.scaleW*=r; t.scaleH*=r; startDist=Math.sqrt(lx*lx+ly*ly); }
-if(dragMode==='width') t.scaleW=Math.max(0.1, startSW*(lx/startDist));
-if(dragMode==='height') t.scaleH=Math.max(0.1, startSH*(ly/startDist));
-}
-requestRender();
-});
-canvas.addEventListener('pointerup', () => dragMode=null);
-function finishMove() { activeDragIdx=null; dragMode=null; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; requestRender(); }
-function download() {
-const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let n = '';
-for(let i=0; i<25; i++) n+=c.charAt(Math.floor(Math.random()*c.length));
-const temp = document.createElement('canvas'); temp.width=canvas.width; temp.height=canvas.height;
-const tctx = temp.getContext('2d'); tctx.drawImage(qCache, 0, 0);
-texts.forEach(t => {
-const fs = (temp.width/10)*t.size; tctx.save(); tctx.font = ${fs}px "ImpactCustom", Impact, sans-serif;
-tctx.textAlign='center'; tctx.textBaseline='middle'; tctx.translate(temp.width*t.x, temp.height*t.y); tctx.rotate(t.rot*Math.PI/180);
-if(t.content) {
-tctx.globalAlpha=t.alpha; tctx.scale(t.scaleW, t.scaleH);
-if(document.getElementById('shd').checked) { tctx.shadowColor=document.getElementById('sCol').value; tctx.shadowBlur=document.getElementById('s').value; }
-else { tctx.strokeStyle=document.getElementById('sCol').value; tctx.lineWidth=document.getElementById('s').value; tctx.strokeText(t.content,0,0); }
-tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
-}
-tctx.restore();
-});
-const l = document.createElement('a'); l.download=n+'.jpg'; l.href=temp.toDataURL('image/jpeg', document.getElementById('quality').value/100); l.click();
-}
+    const canvas = document.getElementById('memeCanvas'), ctx = canvas.getContext('2d', {alpha: false});
+    const off = document.createElement('canvas'), proc = document.createElement('canvas'), pctx = proc.getContext('2d', {alpha: false});
+    const qCache = document.createElement('canvas'), qctx = qCache.getContext('2d', {alpha: false});
+    let cropper, baseImg = null, texts = [], activeDragIdx = null, dragMode = null, isUpdatingQ = false, needsQ = false, rafPending = false;
+    let startX, startY, startTX, startTY, startSW, startSH, startDist;
+
+    function refreshInputs() {
+        const container = document.getElementById('textInputs'); container.innerHTML = '';
+        texts.forEach((t, i) => {
+            const div = document.createElement('div'); div.className = 'text-block';
+            div.innerHTML = `<div class="input-row"><input type="text" value="${t.content}" oninput="texts[${i}].content=this.value; requestRender()"><button class="btn-del" onclick="removeText(${i})">X</button></div>
+                <div class="sro-grid"><label>S <input type="range" min="0.1" max="5" step="0.1" value="${t.size}" oninput="texts[${i}].size=parseFloat(this.size=this.value); requestRender()"></label>
+                <label>R <input type="range" min="-180" max="180" value="${t.rot}" oninput="texts[${i}].rot=this.value; requestRender()"></label>
+                <label class="opacity-cell">O <input type="range" min="0" max="1" step="0.1" value="${t.alpha}" oninput="texts[${i}].alpha=this.value; requestRender()"></label></div>`;
+            container.appendChild(div);
+        });
+    }
+
+    function addText() { texts.push({content:"", x:0.5, y:0.5, size:1, scaleW:1, scaleH:1, rot:0, alpha:1, w:0, h:0}); refreshInputs(); requestRender(); }
+    function removeText(i) { texts.splice(i,1); if(activeDragIdx===i) activeDragIdx=null; refreshInputs(); requestRender(); }
+
+    document.getElementById('gallery').onchange = (e) => {
+        const file = e.target.files[0]; if(!file) return;
+        const url = URL.createObjectURL(file); const el = document.getElementById('cropImg');
+        document.getElementById('cropWrap').style.display = 'block'; document.getElementById('applyBtn').style.display = 'block';
+        el.onload = () => { if(cropper) cropper.destroy(); cropper = new Cropper(el, {viewMode:1}); };
+        el.src = url;
+    };
+
+    function applyCrop() {
+        if(!cropper) return;
+        baseImg = new Image();
+        baseImg.onload = () => {
+            canvas.width = off.width = proc.width = qCache.width = baseImg.width;
+            canvas.height = off.height = proc.height = qCache.height = baseImg.height;
+            off.getContext('2d').drawImage(baseImg, 0, 0);
+            document.getElementById('cropWrap').style.display = 'none'; document.getElementById('applyBtn').style.display = 'none';
+            processBase();
+        };
+        baseImg.src = cropper.getCroppedCanvas().toDataURL('image/png');
+    }
+
+    function processBase() {
+        if(!baseImg) return;
+        pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
+        pctx.drawImage(off, 0, 0);
+        const n = document.getElementById('noise').value;
+        if(n > 0) {
+            const d = pctx.getImageData(0,0,proc.width,proc.height);
+            for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*n; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
+            pctx.putImageData(d,0,0);
+        }
+        queueQuality();
+    }
+
+    function queueQuality() { needsQ = true; if(!isUpdatingQ) updateQuality(); }
+    function updateQuality() {
+        if(!baseImg) return; isUpdatingQ = true; needsQ = false;
+        const img = new Image();
+        img.onload = () => { qctx.drawImage(img, 0, 0); requestRender(); isUpdatingQ = false; if(needsQ) updateQuality(); };
+        img.src = proc.toDataURL('image/jpeg', document.getElementById('quality').value/100);
+    }
+
+    function requestRender() { if(!rafPending) { rafPending = true; requestAnimationFrame(render); } }
+
+    function render() {
+        rafPending = false; if(!baseImg) return;
+        ctx.drawImage(qCache, 0, 0);
+        texts.forEach((t, i) => {
+            const fs = (canvas.width/10)*t.size;
+            ctx.save();
+            ctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const m = ctx.measureText(t.content||" ");
+            t.w = m.width*t.scaleW; t.h = fs*t.scaleH;
+            ctx.translate(canvas.width*t.x, canvas.height*t.y);
+            ctx.rotate(t.rot*Math.PI/180);
+            if(i === activeDragIdx) {
+                ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4;
+                ctx.strokeRect(-t.w/2-15, -t.h/2-15, t.w+30, t.h+30);
+                ctx.fillStyle = '#ff4436'; ctx.fillRect(t.w/2+10, -t.h/2-60, 50, 50);
+                ctx.fillStyle = '#3498db'; ctx.fillRect(t.w/2+20, -25, 40, 50);
+                ctx.fillStyle = '#2ecc71'; ctx.fillRect(-25, t.h/2+20, 50, 40);
+            }
+            if(t.content) {
+                ctx.globalAlpha = t.alpha; ctx.scale(t.scaleW, t.scaleH);
+                if(document.getElementById('shd').checked) { ctx.shadowColor=document.getElementById('sCol').value; ctx.shadowBlur=document.getElementById('s').value; }
+                else { ctx.strokeStyle=document.getElementById('sCol').value; ctx.lineWidth=document.getElementById('s').value; ctx.strokeText(t.content,0,0); }
+                ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
+            }
+            ctx.restore();
+        });
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height);
+        if(activeDragIdx !== null) {
+            const t = texts[activeDragIdx], cx = t.x*canvas.width, cy = t.y*canvas.height, ang = -t.rot*Math.PI/180;
+            const lx = (ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly = (ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
+            if(lx>t.w/2 && ly<-t.h/2) { dragMode='size'; startSW=t.scaleW; startDist=Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return; }
+            if(lx>t.w/2) { dragMode='width'; startSW=t.scaleW; startDist=lx; canvas.setPointerCapture(e.pointerId); return; }
+            if(ly>t.h/2) { dragMode='height'; startSH=t.scaleH; startDist=ly; canvas.setPointerCapture(e.pointerId); return; }
+        }
+        let f = null;
+        for(let i=texts.length-1; i>=0; i--) {
+            const t=texts[i]; if(Math.abs(ex-t.x*canvas.width)<(Math.max(t.w,50)/2+40) && Math.abs(ey-t.y*canvas.height)<(Math.max(t.h,50)/2+40)) { f=i; break; }
+        }
+        if(f !== null) {
+            activeDragIdx=f; dragMode='move'; startX=ex; startY=ey; startTX=texts[f].x; startTY=texts[f].y;
+            canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display='block';
+            canvas.setPointerCapture(e.pointerId); requestRender();
+        } else finishMove();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+        if(activeDragIdx===null || !canvas.hasPointerCapture(e.pointerId)) return;
+        const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height), t = texts[activeDragIdx];
+        if(dragMode==='move') { t.x=startTX+(ex-startX)/canvas.width; t.y=startTY+(ey-startY)/canvas.height; }
+        else {
+            const cx=t.x*canvas.width, cy=t.y*canvas.height, ang=-t.rot*Math.PI/180;
+            const lx=(ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly=(ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
+            if(dragMode==='size') { const r=Math.sqrt(lx*lx+ly*ly)/startDist; t.scaleW*=r; t.scaleH*=r; startDist=Math.sqrt(lx*lx+ly*ly); }
+            if(dragMode==='width') t.scaleW=Math.max(0.1, startSW*(lx/startDist));
+            if(dragMode==='height') t.scaleH=Math.max(0.1, startSH*(ly/startDist));
+        }
+        requestRender();
+    });
+
+    canvas.addEventListener('pointerup', () => dragMode=null);
+    function finishMove() { activeDragIdx=null; dragMode=null; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; requestRender(); }
+
+    function download() {
+        const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let n = '';
+        for(let i=0; i<25; i++) n+=c.charAt(Math.floor(Math.random()*c.length));
+        const temp = document.createElement('canvas'); temp.width=canvas.width; temp.height=canvas.height;
+        const tctx = temp.getContext('2d'); tctx.drawImage(qCache, 0, 0);
+        texts.forEach(t => {
+            const fs = (temp.width/10)*t.size; tctx.save(); tctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
+            tctx.textAlign='center'; tctx.textBaseline='middle'; tctx.translate(temp.width*t.x, temp.height*t.y); tctx.rotate(t.rot*Math.PI/180);
+            if(t.content) {
+                tctx.globalAlpha=t.alpha; tctx.scale(t.scaleW, t.scaleH);
+                if(document.getElementById('shd').checked) { tctx.shadowColor=document.getElementById('sCol').value; tctx.shadowBlur=document.getElementById('s').value; }
+                else { tctx.strokeStyle=document.getElementById('sCol').value; tctx.lineWidth=document.getElementById('s').value; tctx.strokeText(t.content,0,0); }
+                tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
+            }
+            tctx.restore();
+        });
+        const l = document.createElement('a'); l.download=n+'.jpg'; l.href=temp.toDataURL('image/jpeg', document.getElementById('quality').value/100); l.click();
+    }
 </script>
 </body>
 </html>
