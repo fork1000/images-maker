@@ -117,13 +117,10 @@
     function processBase() {
         if(!baseImg) return;
         const w = proc.width, h = proc.height;
-        
-        // 1. Apply Contrast/Sat
         pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
         pctx.drawImage(off, 0, 0);
         pctx.filter = 'none';
 
-        // 2. Get Data for Pixel-Level Noise/Glitch
         const imageData = pctx.getImageData(0, 0, w, h);
         const data = imageData.data;
         const nVal = parseInt(document.getElementById('noise').value);
@@ -131,22 +128,19 @@
 
         if (nVal > 0 || gVal > 0) {
             for (let i = 0; i < data.length; i += 4) {
-                // Shared B&W Noise
                 if (nVal > 0) {
                     let r = (Math.random() - 0.5) * nVal;
                     data[i] += r; data[i+1] += r; data[i+2] += r;
                 }
-                // Independent RGB Particles (The Glitch)
                 if (gVal > 0) {
-                    data[i] += (Math.random() - 0.5) * gVal;     // Red noise
-                    data[i+1] += (Math.random() - 0.5) * gVal;   // Green noise
-                    data[i+2] += (Math.random() - 0.5) * gVal;   // Blue noise
+                    data[i] += (Math.random() - 0.5) * gVal;
+                    data[i+1] += (Math.random() - 0.5) * gVal;
+                    data[i+2] += (Math.random() - 0.5) * gVal;
                 }
             }
             pctx.putImageData(imageData, 0, 0);
         }
 
-        // 3. Vignette
         const vVal = document.getElementById('vig').value;
         if(vVal > 0) {
             const grad = pctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.sqrt(w*w + h*h)/2);
@@ -155,7 +149,6 @@
             pctx.fillStyle = grad;
             pctx.fillRect(0,0,w,h);
         }
-
         queueQuality();
     }
 
@@ -235,38 +228,57 @@
     const stopDrag = (e) => { dragMode=null; if(canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId); };
     canvas.addEventListener('pointerup', stopDrag);
     canvas.addEventListener('pointercancel', stopDrag);
-
     function finishMove() { activeDragIdx=null; dragMode=null; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; requestRender(); }
 
+    // --- FINAL SYNC DOWNLOAD FIX ---
     function download() {
         if(!baseImg) return;
-        const temp = document.createElement('canvas'); temp.width=canvas.width; temp.height=canvas.height;
-        const tctx = temp.getContext('2d'); tctx.drawImage(qCache, 0, 0);
+        
+        // Use a temporary canvas to flatten the final image
+        const temp = document.createElement('canvas'); 
+        temp.width=canvas.width; temp.height=canvas.height;
+        const tctx = temp.getContext('2d'); 
+        tctx.drawImage(qCache, 0, 0);
+
         texts.forEach(t => {
-            const fs = (temp.width/10)*t.size; tctx.save(); tctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
-            tctx.textAlign='center'; tctx.textBaseline='middle'; tctx.translate(temp.width*t.x, temp.height*t.y); tctx.rotate(t.rot*Math.PI/180);
+            const fs = (temp.width/10)*t.size; tctx.save(); 
+            tctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
+            tctx.textAlign='center'; tctx.textBaseline='middle'; 
+            tctx.translate(temp.width*t.x, temp.height*t.y); 
+            tctx.rotate(t.rot*Math.PI/180);
             if(t.content) {
                 tctx.globalAlpha=t.alpha; tctx.scale(t.scaleW, t.scaleH);
-                if(document.getElementById('shd').checked) { tctx.shadowColor=document.getElementById('sCol').value; tctx.shadowBlur=document.getElementById('s').value; }
-                else { tctx.strokeStyle=document.getElementById('sCol').value; tctx.lineWidth=document.getElementById('s').value; tctx.strokeText(t.content,0,0); }
+                if(document.getElementById('shd').checked) { 
+                    tctx.shadowColor=document.getElementById('sCol').value; 
+                    tctx.shadowBlur=document.getElementById('s').value; 
+                } else { 
+                    tctx.strokeStyle=document.getElementById('sCol').value; 
+                    tctx.lineWidth=document.getElementById('s').value; 
+                    tctx.strokeText(t.content,0,0); 
+                }
                 tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
             }
             tctx.restore();
         });
         
-        temp.toBlob((blob) => {
-            const url = URL.createObjectURL(blob);
-            const l = document.createElement('a');
-            l.download = 'img_' + Date.now() + '.jpg';
-            l.href = url;
-            document.body.appendChild(l);
-            l.click();
-            setTimeout(() => { 
-                document.body.removeChild(l); 
-                URL.revokeObjectURL(url); 
-                temp.width = temp.height = 0;
-            }, 100);
-        }, 'image/jpeg', document.getElementById('quality').value/100);
+        // SYNC METHOD: toDataURL is instant. No async disconnect.
+        const qVal = document.getElementById('quality').value / 100;
+        const dataUrl = temp.toDataURL('image/jpeg', qVal);
+        
+        const l = document.createElement('a');
+        const unique = Date.now() + '_' + Math.floor(Math.random()*1000);
+        l.download = 'img_' + unique + '.jpg';
+        l.href = dataUrl;
+        
+        // Force append and click
+        document.body.appendChild(l);
+        l.click();
+        
+        // Cleanup
+        setTimeout(() => { 
+            document.body.removeChild(l); 
+            temp.width = temp.height = 0;
+        }, 50);
     }
 </script>
 </body>
