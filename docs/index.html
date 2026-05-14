@@ -45,7 +45,7 @@
         input[type="color"] { opacity: 0; width: 100%; height: 100%; cursor: pointer; position: absolute; top:0; left:0; }
 
         .canvas-container { width: 100%; background: var(--control-bg); padding: 10px; border-radius: 4px; margin-top: 10px; }
-        canvas { width: 100%; background: #000; display: block; touch-action: none; }
+        canvas { width: 100%; background: #000; display: block; touch-action: none; image-rendering: -webkit-optimize-contrast; }
         canvas.active-drag { outline: 3px solid #32CD32; }
 
         #cropWrap { width: 100%; display: none; background: #000; margin-bottom: 10px; padding: 10px; }
@@ -68,7 +68,7 @@
     <button class="btn-add" onclick="addText()">+ ADD TEXT</button>
 
     <div class="settings-grid">
-        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="render()"></div>
+        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="95" oninput="updateQualityPreview()"></div>
         <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBaseAndRender()"></div>
@@ -88,14 +88,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
     const canvas = document.getElementById('memeCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     const off = document.createElement('canvas');
     const proc = document.createElement('canvas');
-    const pctx = proc.getContext('2d');
+    const pctx = proc.getContext('2d', { alpha: false });
     
     let cropper, baseImg = null, texts = [], activeDragIdx = null, dragMode = null;
     let startPointerX, startPointerY, startTextX, startTextY, startScaleW, startScaleH, startHandleDist;
-    let qualityPreviewImg = new Image();
+    let qualityCachedCanvas = document.createElement('canvas');
+    let qctx = qualityCachedCanvas.getContext('2d', { alpha: false });
 
     function refreshInputs() {
         const container = document.getElementById('textInputs');
@@ -146,8 +147,8 @@
     function applyCrop() {
         baseImg = new Image();
         baseImg.onload = () => {
-            canvas.width = off.width = proc.width = baseImg.width;
-            canvas.height = off.height = proc.height = baseImg.height;
+            canvas.width = off.width = proc.width = qualityCachedCanvas.width = baseImg.width;
+            canvas.height = off.height = proc.height = qualityCachedCanvas.height = baseImg.height;
             off.getContext('2d').drawImage(baseImg, 0, 0);
             document.getElementById('cropWrap').style.display = 'none'; 
             document.getElementById('applyBtn').style.display = 'none';
@@ -158,7 +159,6 @@
 
     function processBaseAndRender() {
         if(!baseImg) return;
-        pctx.clearRect(0,0,proc.width,proc.height);
         pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
         pctx.drawImage(off, 0, 0);
         const n = document.getElementById('noise').value;
@@ -170,18 +170,24 @@
             }
             pctx.putImageData(d,0,0);
         }
-        render();
+        updateQualityPreview();
+    }
+
+    function updateQualityPreview() {
+        if(!baseImg) return;
+        const q = parseFloat(document.getElementById('quality').value) / 100;
+        const tempImg = new Image();
+        tempImg.onload = () => {
+            qctx.drawImage(tempImg, 0, 0);
+            render();
+        };
+        tempImg.src = proc.toDataURL('image/jpeg', q);
     }
 
     function render() {
         if(!baseImg) return;
-        const q = parseFloat(document.getElementById('quality').value) / 100;
-        qualityPreviewImg.onload = () => {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            ctx.drawImage(qualityPreviewImg, 0, 0);
-            texts.forEach((t, i) => drawText(t, ctx, i === activeDragIdx));
-        };
-        qualityPreviewImg.src = proc.toDataURL('image/jpeg', q);
+        ctx.drawImage(qualityCachedCanvas, 0, 0);
+        texts.forEach((t, i) => drawText(t, ctx, i === activeDragIdx));
     }
 
     function drawText(t, target, active) {
@@ -205,6 +211,7 @@
             target.lineWidth = 4;
             target.strokeRect(-t.width/2 - 15, -t.height/2 - 15, t.width + 30, t.height + 30);
             
+            target.globalAlpha = 1.0;
             target.fillStyle = '#ff4436'; 
             target.fillRect(t.width/2 + 10, -t.height/2 - 50, 50, 50); 
             
@@ -212,7 +219,8 @@
             target.fillRect(t.width/2 + 20, -25, 40, 50); 
             
             target.fillStyle = '#2ecc71'; 
-            target.fillRect(-25, t.height/2 + 20, 50, 40); 
+            target.fillRect(-25, t.height/2 + 20, 50, 40);
+            target.globalAlpha = t.alpha;
         }
 
         if(t.content) {
@@ -271,7 +279,7 @@
             const t = texts[i];
             const dx = Math.abs(ex - t.x * canvas.width);
             const dy = Math.abs(ey - t.y * canvas.height);
-            if(dx < (t.width/2 + 20) && dy < (t.height/2 + 20)) {
+            if(dx < (t.width/2 + 40) && dy < (t.height/2 + 40)) {
                 found = i;
                 break;
             }
@@ -317,7 +325,7 @@
             if (dragMode === 'width') t.scaleW = Math.max(0.1, startScaleW * (lx / startHandleDist));
             if (dragMode === 'height') t.scaleH = Math.max(0.1, startScaleH * (ly / startHandleDist));
         }
-        render();
+        requestAnimationFrame(render);
     });
 
     canvas.addEventListener('pointerup', () => { dragMode = null; });
@@ -334,10 +342,19 @@
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let fileName = '';
         for (let i = 0; i < 25; i++) fileName += chars.charAt(Math.floor(Math.random() * chars.length));
+        
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = canvas.width;
+        finalCanvas.height = canvas.height;
+        const fctx = finalCanvas.getContext('2d');
+        
+        fctx.drawImage(qualityCachedCanvas, 0, 0);
+        texts.forEach(t => drawText(t, fctx, false));
+
         const q = parseFloat(document.getElementById('quality').value) / 100;
         const link = document.createElement('a');
         link.download = fileName + '.jpg';
-        link.href = canvas.toDataURL('image/jpeg', q);
+        link.href = finalCanvas.toDataURL('image/jpeg', q);
         link.click();
     }
 </script>
