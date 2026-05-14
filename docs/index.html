@@ -26,14 +26,15 @@
         .btn-save { background: var(--btn-dark); color: white; margin-top: 15px; }
         .btn-done { background: #32CD32; color: black; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; display: none; padding: 25px; }
 
-        .text-block { margin-bottom: 15px; }
-        .input-row { display: flex; border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
+        .text-block { margin-bottom: 20px; }
+        .input-row { display: flex; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
         .input-row input[type="text"] { flex-grow: 1; padding: 12px; border: none; font-size: 18px; color: #666; font-weight: bold; outline: none; }
         .btn-del { background: var(--btn-red); color: white; width: 55px; font-size: 22px; margin-bottom: 0; border-radius: 0; }
         
-        .sro-row { display: flex; gap: 10px; font-size: 10px; color: #999; padding: 0 5px; align-items: center; }
-        .sro-row label { display: flex; align-items: center; gap: 4px; flex: 1; }
-        .sro-row input { flex: 1; accent-color: var(--btn-blue); height: 3px; }
+        .sro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
+        .sro-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #999; }
+        .sro-grid input { flex: 1; accent-color: var(--btn-blue); height: 3px; cursor: pointer; }
+        .opacity-cell { grid-column: 1; }
 
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: var(--control-bg); padding: 15px; border-radius: 4px; margin-top: 10px; }
         .control-item { display: flex; flex-direction: column; gap: 8px; }
@@ -49,11 +50,7 @@
 
         #cropWrap { width: 100%; display: none; background: #000; margin-bottom: 10px; padding: 10px; }
         
-        @font-face {
-            font-family: 'ImpactCustom';
-            src: url('impact.ttf');
-            font-weight: normal;
-        }
+        @font-face { font-family: 'ImpactCustom'; src: url('impact.ttf'); font-weight: normal; }
     </style>
 </head>
 <body>
@@ -71,13 +68,14 @@
     <button class="btn-add" onclick="addText()">+ ADD TEXT</button>
 
     <div class="settings-grid">
-        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="5" max="100" value="100" oninput="render()"></div>
+        <div class="control-item"><label>QUALITY</label><input type="range" id="quality" min="1" max="100" value="90"></div>
         <div class="control-item"><label>NOISE</label><input type="range" id="noise" min="0" max="100" value="0" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>CONTRAST</label><input type="range" id="con" min="50" max="250" value="100" onchange="processBaseAndRender()"></div>
         <div class="control-item"><label>SATURATION</label><input type="range" id="sat" min="0" max="300" value="100" onchange="processBaseAndRender()"></div>
-        <div class="control-item"><label>WIDTH</label><input type="range" id="wGlobal" min="0.1" max="3" step="0.1" value="1" oninput="updateGlobalWidth()"></div>
         <div class="control-item"><label>STROKE</label><input type="range" id="s" min="0" max="20" value="5" oninput="render()"></div>
-        <div class="control-item"><label>STROKE COLOR</label><div class="swatch-box" id="cDisp"><input type="color" id="sCol" value="#000000" oninput="document.getElementById('cDisp').style.background=this.value; render()"></div></div>
+        <div class="control-item"><label>STROKE COLOR</label>
+            <div class="swatch-box" id="cDisp"><input type="color" id="sCol" value="#000000" oninput="document.getElementById('cDisp').style.background=this.value; render()"></div>
+        </div>
         <div class="control-item"><label>SHADOW MODE</label><input type="checkbox" id="shd" onchange="render()" style="width:25px; height:25px;"></div>
     </div>
 
@@ -104,24 +102,24 @@
             div.className = 'text-block';
             div.innerHTML = `
                 <div class="input-row">
-                    <input type="text" placeholder="Blank" value="${t.content}" oninput="texts[${i}].content=this.value; render()">
+                    <input type="text" placeholder="Type here..." value="${t.content}" oninput="texts[${i}].content=this.value; render()">
                     <button class="btn-del" onclick="removeText(${i})">X</button>
                 </div>
-                <div class="sro-row">
+                <div class="sro-grid">
                     <label>S <input type="range" min="0.1" max="5" step="0.1" value="${t.size}" oninput="texts[${i}].size=parseFloat(this.value); render()"></label>
                     <label>R <input type="range" min="-180" max="180" value="${t.rot}" oninput="texts[${i}].rot=this.value; render()"></label>
-                    <label>O <input type="range" min="0" max="1" step="0.1" value="${t.alpha}" oninput="texts[${i}].alpha=this.value; render()"></label>
+                    <label class="opacity-cell">O <input type="range" min="0" max="1" step="0.1" value="${t.alpha}" oninput="texts[${i}].alpha=this.value; render()"></label>
                 </div>`;
             container.appendChild(div);
         });
     }
 
     function addText() { 
-        texts.push({ content: "Blank", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1 }); 
+        texts.push({ content: "", x: 0.5, y: 0.5, size: 1, scaleW: 1, scaleH: 1, rot: 0, alpha: 1 }); 
         refreshInputs(); render(); 
     }
+
     function removeText(i) { texts.splice(i, 1); refreshInputs(); render(); }
-    function updateGlobalWidth() { const val = document.getElementById('wGlobal').value; texts.forEach(t => t.scaleW = val); render(); }
 
     document.getElementById('gallery').onchange = (e) => {
         const file = e.target.files[0], reader = new FileReader();
@@ -150,10 +148,10 @@
         pctx.clearRect(0,0,proc.width,proc.height);
         pctx.filter = `contrast(${document.getElementById('con').value}%) saturate(${document.getElementById('sat').value}%)`;
         pctx.drawImage(off, 0, 0);
-        const noise = document.getElementById('noise').value;
-        if(noise > 0) {
+        const n = document.getElementById('noise').value;
+        if(n > 0) {
             const d = pctx.getImageData(0,0,proc.width,proc.height);
-            for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*noise; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
+            for(let i=0; i<d.data.length; i+=4) { let r = (Math.random()-0.5)*n; d.data[i]+=r; d.data[i+1]+=r; d.data[i+2]+=r; }
             pctx.putImageData(d,0,0);
         }
         render();
@@ -162,19 +160,7 @@
     function render() {
         if(!baseImg) return;
         ctx.clearRect(0,0,canvas.width,canvas.height);
-        
-        const q = document.getElementById('quality').value / 100;
-        if (q < 1) {
-            const sw = canvas.width * q, sh = canvas.height * q;
-            const temp = document.createElement('canvas'); temp.width = sw; temp.height = sh;
-            const tctx = temp.getContext('2d');
-            tctx.drawImage(proc, 0, 0, sw, sh);
-            ctx.imageSmoothingEnabled = false; 
-            ctx.drawImage(temp, 0, 0, sw, sh, 0, 0, canvas.width, canvas.height);
-        } else {
-            ctx.drawImage(proc, 0, 0);
-        }
-        
+        ctx.drawImage(proc, 0, 0);
         texts.forEach((t, i) => drawText(t, ctx, i === activeDragIdx));
     }
 
@@ -184,8 +170,9 @@
         target.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
         target.textAlign = 'center';
         target.globalAlpha = t.alpha;
-        const txt = t.content || "Blank";
-        const metrics = target.measureText(txt);
+        
+        const txt = t.content;
+        const metrics = target.measureText(txt || " ");
         t.width = metrics.width * t.scaleW; t.height = fs * t.scaleH;
 
         target.translate(canvas.width * t.x, canvas.height * t.y);
@@ -199,14 +186,16 @@
             target.fillStyle = '#2ecc71'; target.fillRect(-15, t.height/2 + 5, 30, 30); 
         }
 
-        target.scale(t.scaleW, t.scaleH);
-        if(document.getElementById('shd').checked) {
-            target.shadowColor = document.getElementById('sCol').value; target.shadowBlur = document.getElementById('s').value;
-        } else {
-            target.strokeStyle = document.getElementById('sCol').value; target.lineWidth = document.getElementById('s').value;
-            target.strokeText(txt, 0, 0);
+        if(txt) {
+            target.scale(t.scaleW, t.scaleH);
+            if(document.getElementById('shd').checked) {
+                target.shadowColor = document.getElementById('sCol').value; target.shadowBlur = document.getElementById('s').value;
+            } else {
+                target.strokeStyle = document.getElementById('sCol').value; target.lineWidth = document.getElementById('s').value;
+                target.strokeText(txt, 0, 0);
+            }
+            target.fillStyle = 'white'; target.fillText(txt, 0, 0);
         }
-        target.fillStyle = 'white'; target.fillText(txt, 0, 0);
         target.restore();
     }
 
@@ -228,7 +217,7 @@
 
         let found = null;
         texts.forEach((t, i) => {
-            if(Math.abs(ex - t.x * canvas.width) < 80 && Math.abs(ey - t.y * canvas.height) < 40) found = i;
+            if(Math.abs(ex - t.x * canvas.width) < 100 && Math.abs(ey - t.y * canvas.height) < 50) found = i;
         });
 
         if(found !== null) {
@@ -271,10 +260,14 @@
     }
 
     function download() {
-        const q = document.getElementById('quality').value / 100;
-        const link = document.createElement('a'); 
-        link.download = 'image.jpg';
-        link.href = canvas.toDataURL('image/jpeg', q); 
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let fileName = '';
+        for (let i = 0; i < 25; i++) fileName += chars.charAt(Math.floor(Math.random() * chars.length));
+
+        const q = parseFloat(document.getElementById('quality').value) / 100;
+        const link = document.createElement('a');
+        link.download = fileName + '.jpg';
+        link.href = canvas.toDataURL('image/jpeg', q);
         link.click();
     }
 </script>
