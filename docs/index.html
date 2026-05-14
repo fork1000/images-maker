@@ -34,7 +34,7 @@
         .sro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 5px; }
         .sro-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #999; }
         .sro-grid input { flex: 1; accent-color: var(--btn-blue); height: 3px; cursor: pointer; }
-        .opacity-cell { grid-column: 1; }
+        .opacity-cell { grid-row: 2; grid-column: 1; }
 
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: var(--control-bg); padding: 15px; border-radius: 4px; margin-top: 10px; }
         .control-item { display: flex; flex-direction: column; gap: 8px; }
@@ -161,7 +161,6 @@
     function render() {
         if(!baseImg) return;
         const q = parseFloat(document.getElementById('quality').value) / 100;
-        
         qualityPreviewImg.onload = () => {
             ctx.clearRect(0,0,canvas.width,canvas.height);
             ctx.drawImage(qualityPreviewImg, 0, 0);
@@ -177,9 +176,10 @@
         target.textAlign = 'center';
         target.globalAlpha = t.alpha;
         
-        const txt = t.content;
-        const metrics = target.measureText(txt || " ");
-        t.width = metrics.width * t.scaleW; t.height = fs * t.scaleH;
+        const txt = t.content || " ";
+        const metrics = target.measureText(txt);
+        t.width = metrics.width * t.scaleW; 
+        t.height = fs * t.scaleH;
 
         target.translate(canvas.width * t.x, canvas.height * t.y);
         target.rotate(t.rot * Math.PI / 180);
@@ -192,7 +192,7 @@
             target.fillStyle = '#2ecc71'; target.fillRect(-15, t.height/2 + 5, 30, 30); 
         }
 
-        if(txt) {
+        if(t.content) {
             target.scale(t.scaleW, t.scaleH);
             if(document.getElementById('shd').checked) {
                 target.shadowColor = document.getElementById('sCol').value; target.shadowBlur = document.getElementById('s').value;
@@ -216,6 +216,7 @@
             const angle = -t.rot * Math.PI / 180;
             const lx = (ex - cx) * Math.cos(angle) - (ey - cy) * Math.sin(angle);
             const ly = (ex - cx) * Math.sin(angle) + (ey - cy) * Math.cos(angle);
+            
             if (lx > t.width/2 && ly < -t.height/2) { dragMode = 'size'; startScaleW = t.scaleW; startHandleDist = Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return; }
             if (lx > t.width/2) { dragMode = 'width'; startScaleW = t.scaleW; startHandleDist = lx; canvas.setPointerCapture(e.pointerId); return; }
             if (ly > t.height/2) { dragMode = 'height'; startScaleH = t.scaleH; startHandleDist = ly; canvas.setPointerCapture(e.pointerId); return; }
@@ -223,7 +224,9 @@
 
         let found = null;
         texts.forEach((t, i) => {
-            if(Math.abs(ex - t.x * canvas.width) < 100 && Math.abs(ey - t.y * canvas.height) < 50) found = i;
+            const dx = Math.abs(ex - t.x * canvas.width);
+            const dy = Math.abs(ey - t.y * canvas.height);
+            if(dx < 100 && dy < 50) found = i;
         });
 
         if(found !== null) {
@@ -251,9 +254,14 @@
             const angle = -t.rot * Math.PI / 180;
             const lx = (ex - cx) * Math.cos(angle) - (ey - cy) * Math.sin(angle);
             const ly = (ex - cx) * Math.sin(angle) + (ey - cy) * Math.cos(angle);
-            if (dragMode === 'size') { const r = Math.sqrt(lx*lx+ly*ly)/startHandleDist; t.scaleW *= r; t.scaleH *= r; startHandleDist = Math.sqrt(lx*lx+ly*ly); }
-            if (dragMode === 'width') t.scaleW = Math.max(0.1, startScaleW * (lx / startHandleDist));
-            if (dragMode === 'height') t.scaleH = Math.max(0.1, startScaleH * (ly / startHandleDist));
+            
+            if (dragMode === 'size') { 
+                const r = Math.sqrt(lx*lx+ly*ly)/startHandleDist; 
+                t.scaleW *= r; t.scaleH *= r; 
+                startHandleDist = Math.sqrt(lx*lx+ly*ly); 
+            }
+            if (dragMode === 'width') { t.scaleW = Math.max(0.1, startScaleW * (lx / startHandleDist)); }
+            if (dragMode === 'height') { t.scaleH = Math.max(0.1, startScaleH * (ly / startHandleDist)); }
         }
         render();
     });
