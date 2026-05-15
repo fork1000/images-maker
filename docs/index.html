@@ -170,16 +170,23 @@
                 const avgScale = (t.scaleW + t.scaleH) / 2;
                 const scaledStroke = baseStroke * avgScale * t.size;
                 
-                ctx.scale(t.scaleW, t.scaleH);
                 if(document.getElementById('shd').checked) { 
+                    ctx.scale(t.scaleW, t.scaleH);
                     ctx.shadowColor=document.getElementById('sCol').value; 
                     ctx.shadowBlur=scaledStroke; 
+                    ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
                 } else { 
                     ctx.strokeStyle=document.getElementById('sCol').value; 
-                    ctx.lineWidth=scaledStroke / avgScale; 
+                    ctx.lineWidth=scaledStroke;
+                    ctx.lineJoin = 'round';
+                    ctx.miterLimit = 2;
+                    
+                    ctx.save();
+                    ctx.scale(t.scaleW, t.scaleH);
                     ctx.strokeText(t.content,0,0); 
+                    ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
+                    ctx.restore();
                 }
-                ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
             }
             ctx.restore();
         });
@@ -231,16 +238,23 @@
                 const avgScale = (t.scaleW + t.scaleH) / 2;
                 const scaledStroke = baseStroke * avgScale * t.size;
 
-                tctx.scale(t.scaleW, t.scaleH);
                 if(document.getElementById('shd').checked) { 
+                    tctx.scale(t.scaleW, t.scaleH);
                     tctx.shadowColor=document.getElementById('sCol').value; 
                     tctx.shadowBlur=scaledStroke; 
+                    tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
                 } else { 
                     tctx.strokeStyle=document.getElementById('sCol').value; 
-                    tctx.lineWidth=scaledStroke / avgScale; 
+                    tctx.lineWidth=scaledStroke; 
+                    tctx.lineJoin = 'round';
+                    tctx.miterLimit = 2;
+                    
+                    tctx.save();
+                    tctx.scale(t.scaleW, t.scaleH);
                     tctx.strokeText(t.content,0,0); 
+                    tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
+                    tctx.restore();
                 }
-                tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
             }
             tctx.restore();
         });
