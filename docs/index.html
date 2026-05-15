@@ -177,13 +177,17 @@
                     ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
                 } else { 
                     ctx.strokeStyle=document.getElementById('sCol').value; 
-                    ctx.lineWidth=scaledStroke;
+                    ctx.lineWidth=scaledStroke; 
                     ctx.lineJoin = 'round';
                     ctx.miterLimit = 2;
                     
                     ctx.save();
                     ctx.scale(t.scaleW, t.scaleH);
-                    ctx.strokeText(t.content,0,0); 
+                    ctx.strokeText(t.content,0,0);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.scale(t.scaleW, t.scaleH);
                     ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
                     ctx.restore();
                 }
@@ -252,6 +256,10 @@
                     tctx.save();
                     tctx.scale(t.scaleW, t.scaleH);
                     tctx.strokeText(t.content,0,0); 
+                    tctx.restore();
+
+                    tctx.save();
+                    tctx.scale(t.scaleW, t.scaleH);
                     tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
                     tctx.restore();
                 }
