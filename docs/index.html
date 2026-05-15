@@ -73,6 +73,8 @@
     const qCache = document.createElement('canvas'), qctx = qCache.getContext('2d', {alpha: false});
     let cropper, baseImg = null, texts = [], activeDragIdx = null, dragMode = null, isUpdatingQ = false, needsQ = false, rafPending = false;
     let startX, startY, startTX, startTY, startSW, startSH, startDist;
+    let activePointers = {};
+    let startRot = 0, startAngle = 0;
 
     function refreshInputs() {
         const container = document.getElementById('textInputs'); container.innerHTML = '';
@@ -163,6 +165,16 @@
             if(i === activeDragIdx) {
                 ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4;
                 ctx.strokeRect(-t.w/2-15, -t.h/2-15, t.w+30, t.h+30);
+                
+                ctx.fillStyle = '#32CD32';
+                ctx.fillRect(t.w/2, -t.h/2-30, 30, 30);
+                ctx.fillRect(t.w/2 + 20, -15, 30, 30);
+                ctx.fillRect(-15, t.h/2 + 20, 30, 30);
+                
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                ctx.strokeRect(t.w/2, -t.h/2-30, 30, 30);
+                ctx.strokeRect(t.w/2 + 20, -15, 30, 30);
+                ctx.strokeRect(-15, t.h/2 + 20, 30, 30);
             }
             if(t.content) {
                 ctx.globalAlpha = t.alpha;
@@ -196,14 +208,55 @@
         });
     }
 
+    function getPointersDistAndAngle() {
+        const ids = Object.keys(activePointers);
+        if(ids.length < 2) return null;
+        const p1 = activePointers[ids[0]];
+        const p2 = activePointers[ids[1]];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        return {
+            dist: Math.sqrt(dx*dx + dy*dy),
+            angle: Math.atan2(dy, dx)
+        };
+    }
+
     canvas.addEventListener('pointerdown', (e) => {
-        const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height);
+        const rect = canvas.getBoundingClientRect();
+        const ex = (e.clientX-rect.left)*(canvas.width/rect.width);
+        const ey = (e.clientY-rect.top)*(canvas.height/rect.height);
+        
+        activePointers[e.pointerId] = { x: ex, y: ey };
+        const pIds = Object.keys(activePointers);
+
+        if(pIds.length === 2 && activeDragIdx !== null) {
+            dragMode = 'pinch';
+            const data = getPointersDistAndAngle();
+            if(data) {
+                startDist = data.dist;
+                startAngle = data.angle;
+                startSW = texts[activeDragIdx].scaleW;
+                startSH = texts[activeDragIdx].scaleH;
+                startRot = parseFloat(texts[activeDragIdx].rot);
+            }
+            return;
+        }
+
+        if(pIds.length > 1) return;
+
         if(activeDragIdx !== null) {
             const t = texts[activeDragIdx], cx = t.x*canvas.width, cy = t.y*canvas.height, ang = -t.rot*Math.PI/180;
             const lx = (ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly = (ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
-            if(lx>t.w/2 && ly<-t.h/2) { dragMode='size'; startSW=t.scaleW; startDist=Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return; }
-            if(lx>t.w/2) { dragMode='width'; startSW=t.scaleW; startDist=lx; canvas.setPointerCapture(e.pointerId); return; }
-            if(ly>t.h/2) { dragMode='height'; startSH=t.scaleH; startDist=ly; canvas.setPointerCapture(e.pointerId); return; }
+            
+            if(lx >= t.w/2 && lx <= t.w/2 + 30 && ly >= -t.h/2 - 30 && ly <= -t.h/2) {
+                dragMode='size'; startSW=t.scaleW; startDist=Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return;
+            }
+            if(lx >= t.w/2 + 20 && lx <= t.w/2 + 50 && ly >= -15 && ly <= 15) {
+                dragMode='width'; startSW=t.scaleW; startDist=lx; canvas.setPointerCapture(e.pointerId); return;
+            }
+            if(lx >= -15 && lx <= 15 && ly >= t.h/2 + 20 && ly <= t.h/2 + 50) {
+                dragMode='height'; startSH=t.scaleH; startDist=ly; canvas.setPointerCapture(e.pointerId); return;
+            }
         }
         let f = null;
         for(let i=texts.length-1; i>=0; i--) {
@@ -212,9 +265,39 @@
         if(f !== null) { activeDragIdx=f; dragMode='move'; startX=ex; startY=ey; startTX=texts[f].x; startTY=texts[f].y; canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display='block'; canvas.setPointerCapture(e.pointerId); requestRender();
         } else finishMove();
     });
+
     canvas.addEventListener('pointermove', (e) => {
-        if(activeDragIdx===null || !canvas.hasPointerCapture(e.pointerId)) return;
-        const rect = canvas.getBoundingClientRect(), ex = (e.clientX-rect.left)*(canvas.width/rect.width), ey = (e.clientY-rect.top)*(canvas.height/rect.height), t = texts[activeDragIdx];
+        const rect = canvas.getBoundingClientRect();
+        const ex = (e.clientX-rect.left)*(canvas.width/rect.width);
+        const ey = (e.clientY-rect.top)*(canvas.height/rect.height);
+        
+        if (activePointers[e.pointerId]) {
+            activePointers[e.pointerId] = { x: ex, y: ey };
+        }
+
+        if(activeDragIdx===null) return;
+
+        if(dragMode === 'pinch') {
+            const data = getPointersDistAndAngle();
+            if(data) {
+                const t = texts[activeDragIdx];
+                const scaleFactor = data.dist / startDist;
+                t.scaleW = Math.max(0.1, startSW * scaleFactor);
+                t.scaleH = Math.max(0.1, startSH * scaleFactor);
+                
+                let deltaAngle = (data.angle - startAngle) * 180 / Math.PI;
+                let newRot = (startRot + deltaAngle) % 360;
+                if (newRot > 180) newRot -= 360;
+                if (newRot < -180) newRot += 360;
+                t.rot = newRot.toFixed(1);
+                
+                requestRender();
+            }
+            return;
+        }
+
+        if(!canvas.hasPointerCapture(e.pointerId)) return;
+        const t = texts[activeDragIdx];
         if(dragMode==='move') { t.x=startTX+(ex-startX)/canvas.width; t.y=startTY+(ey-startY)/canvas.height; }
         else {
             const cx=t.x*canvas.width, cy=t.y*canvas.height, ang=-t.rot*Math.PI/180;
@@ -225,9 +308,22 @@
         }
         requestRender();
     });
-    const stopDrag = (e) => { dragMode=null; if(canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId); };
+
+    const stopDrag = (e) => {
+        delete activePointers[e.pointerId];
+        const pIds = Object.keys(activePointers);
+        
+        if(dragMode === 'pinch' && pIds.length < 2) {
+            dragMode = null;
+        } else if(pIds.length === 0) {
+            dragMode=null;
+            if(canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+        }
+    };
     canvas.addEventListener('pointerup', stopDrag);
-    function finishMove() { activeDragIdx=null; dragMode=null; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; requestRender(); }
+    canvas.addEventListener('pointercancel', stopDrag);
+
+    function finishMove() { activeDragIdx=null; dragMode=null; activePointers={}; canvas.classList.remove('active-drag'); document.getElementById('doneBtn').style.display='none'; refreshInputs(); requestRender(); }
 
     function download() {
         if(!baseImg) return;
