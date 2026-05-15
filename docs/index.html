@@ -76,6 +76,9 @@
     let activePointers = {};
     let startRot = 0, startAngle = 0;
 
+    const HANDLE_SIZE = 30;
+    const HITBOX_PADDING = 20;
+
     function refreshInputs() {
         const container = document.getElementById('textInputs'); container.innerHTML = '';
         texts.forEach((t, i) => {
@@ -166,15 +169,15 @@
                 ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4;
                 ctx.strokeRect(-t.w/2-15, -t.h/2-15, t.w+30, t.h+30);
                 
-                ctx.fillStyle = '#32CD32';
-                ctx.fillRect(t.w/2, -t.h/2-30, 30, 30);
-                ctx.fillRect(t.w/2 + 20, -15, 30, 30);
-                ctx.fillRect(-15, t.h/2 + 20, 30, 30);
-                
+                ctx.fillStyle = '#ff4444';
+                ctx.fillRect(t.w/2 + 20, -HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
                 ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
-                ctx.strokeRect(t.w/2, -t.h/2-30, 30, 30);
-                ctx.strokeRect(t.w/2 + 20, -15, 30, 30);
-                ctx.strokeRect(-15, t.h/2 + 20, 30, 30);
+                ctx.strokeRect(t.w/2 + 20, -HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
+
+                ctx.fillStyle = '#009ce2';
+                ctx.fillRect(-HANDLE_SIZE/2, t.h/2 + 20, HANDLE_SIZE, HANDLE_SIZE);
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                ctx.strokeRect(-HANDLE_SIZE/2, t.h/2 + 20, HANDLE_SIZE, HANDLE_SIZE);
             }
             if(t.content) {
                 ctx.globalAlpha = t.alpha;
@@ -245,23 +248,37 @@
         if(pIds.length > 1) return;
 
         if(activeDragIdx !== null) {
-            const t = texts[activeDragIdx], cx = t.x*canvas.width, cy = t.y*canvas.height, ang = -t.rot*Math.PI/180;
-            const lx = (ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly = (ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
+            const t = texts[activeDragIdx], cx = t.x*canvas.width, cy = t.y*canvas.height;
+            const rad = t.rot * Math.PI / 180;
+            const lx = (ex - cx) * Math.cos(-rad) - (ey - cy) * Math.sin(-rad);
+            const ly = (ex - cx) * Math.sin(-rad) + (ey - cy) * Math.cos(-rad);
             
-            if(lx >= t.w/2 && lx <= t.w/2 + 30 && ly >= -t.h/2 - 30 && ly <= -t.h/2) {
-                dragMode='size'; startSW=t.scaleW; startDist=Math.sqrt(lx*lx+ly*ly); canvas.setPointerCapture(e.pointerId); return;
-            }
-            if(lx >= t.w/2 + 20 && lx <= t.w/2 + 50 && ly >= -15 && ly <= 15) {
+            const rightX = t.w/2 + 20 + HANDLE_SIZE/2;
+            const rightY = 0;
+            if(Math.abs(lx - rightX) <= (HANDLE_SIZE/2 + HITBOX_PADDING) && Math.abs(ly - rightY) <= (HANDLE_SIZE/2 + HITBOX_PADDING)) {
                 dragMode='width'; startSW=t.scaleW; startDist=lx; canvas.setPointerCapture(e.pointerId); return;
             }
-            if(lx >= -15 && lx <= 15 && ly >= t.h/2 + 20 && ly <= t.h/2 + 50) {
+            
+            const bottomX = 0;
+            const bottomY = t.h/2 + 20 + HANDLE_SIZE/2;
+            if(Math.abs(lx - bottomX) <= (HANDLE_SIZE/2 + HITBOX_PADDING) && Math.abs(ly - bottomY) <= (HANDLE_SIZE/2 + HITBOX_PADDING)) {
                 dragMode='height'; startSH=t.scaleH; startDist=ly; canvas.setPointerCapture(e.pointerId); return;
             }
         }
+        
         let f = null;
         for(let i=texts.length-1; i>=0; i--) {
-            const t=texts[i]; if(Math.abs(ex-t.x*canvas.width)<(Math.max(t.w,50)/2+40) && Math.abs(ey-t.y*canvas.height)<(Math.max(t.h,50)/2+40)) { f=i; break; }
+            const t = texts[i];
+            const cx = t.x * canvas.width, cy = t.y * canvas.height;
+            const rad = t.rot * Math.PI / 180;
+            const lx = (ex - cx) * Math.cos(-rad) - (ey - cy) * Math.sin(-rad);
+            const ly = (ex - cx) * Math.sin(-rad) + (ey - cy) * Math.cos(-rad);
+
+            if(Math.abs(lx) < (Math.max(t.w, 50)/2 + 20) && Math.abs(ly) < (Math.max(t.h, 50)/2 + 20)) { 
+                f=i; break; 
+            }
         }
+        
         if(f !== null) { activeDragIdx=f; dragMode='move'; startX=ex; startY=ey; startTX=texts[f].x; startTY=texts[f].y; canvas.classList.add('active-drag'); document.getElementById('doneBtn').style.display='block'; canvas.setPointerCapture(e.pointerId); requestRender();
         } else finishMove();
     });
@@ -300,9 +317,11 @@
         const t = texts[activeDragIdx];
         if(dragMode==='move') { t.x=startTX+(ex-startX)/canvas.width; t.y=startTY+(ey-startY)/canvas.height; }
         else {
-            const cx=t.x*canvas.width, cy=t.y*canvas.height, ang=-t.rot*Math.PI/180;
-            const lx=(ex-cx)*Math.cos(ang)-(ey-cy)*Math.sin(ang), ly=(ex-cx)*Math.sin(ang)+(ey-cy)*Math.cos(ang);
-            if(dragMode==='size') { const r=Math.sqrt(lx*lx+ly*ly)/startDist; t.scaleW*=r; t.scaleH*=r; startDist=Math.sqrt(lx*lx+ly*ly); }
+            const cx=t.x*canvas.width, cy=t.y*canvas.height;
+            const rad = t.rot * Math.PI / 180;
+            const lx = (ex - cx) * Math.cos(-rad) - (ey - cy) * Math.sin(-rad);
+            const ly = (ex - cx) * Math.sin(-rad) + (ey - cy) * Math.cos(-rad);
+            
             if(dragMode==='width') t.scaleW=Math.max(0.1, startSW*(lx/startDist));
             if(dragMode==='height') t.scaleH=Math.max(0.1, startSH*(ly/startDist));
         }
