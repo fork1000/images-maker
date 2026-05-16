@@ -77,7 +77,8 @@
     let startRot = 0, startAngle = 0;
 
     const HANDLE_SIZE = 30;
-    const HITBOX_PADDING = 20;
+    const HITBOX_PADDING = 25;
+    let imgRatio = 1;
 
     function refreshInputs() {
         const container = document.getElementById('textInputs'); container.innerHTML = '';
@@ -108,8 +109,17 @@
         const croppedCanvas = cropper.getCroppedCanvas();
         baseImg = new Image();
         baseImg.onload = () => {
-            canvas.width = off.width = proc.width = qCache.width = baseImg.width;
-            canvas.height = off.height = proc.height = qCache.height = baseImg.height;
+            imgRatio = baseImg.height / baseImg.width;
+            
+            let targetW = Math.max(baseImg.width, 1200); 
+            let targetH = targetW * imgRatio;
+
+            canvas.width = targetW;
+            canvas.height = targetH;
+            
+            off.width = proc.width = qCache.width = baseImg.width;
+            off.height = proc.height = qCache.height = baseImg.height;
+            
             off.getContext('2d').drawImage(baseImg, 0, 0);
             document.getElementById('cropWrap').style.display = 'none'; document.getElementById('applyBtn').style.display = 'none';
             processBase();
@@ -156,7 +166,10 @@
 
     function render() {
         rafPending = false; if(!baseImg) return;
-        ctx.drawImage(qCache, 0, 0);
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(qCache, 0, 0, canvas.width, canvas.height);
+        
         texts.forEach((t, i) => {
             const fs = (canvas.width/10)*t.size;
             ctx.save(); ctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
@@ -165,31 +178,35 @@
             t.w = m.width*t.scaleW; t.h = fs*t.scaleH;
             ctx.translate(canvas.width*t.x, canvas.height*t.y);
             ctx.rotate(t.rot*Math.PI/180);
+            
             if(i === activeDragIdx) {
-                ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4;
+                ctx.strokeStyle = '#32CD32'; ctx.lineWidth = 4 / (canvas.width / canvas.getBoundingClientRect().width);
+                if(ctx.lineWidth < 3) ctx.lineWidth = 3;
+                
                 ctx.strokeRect(-t.w/2-15, -t.h/2-15, t.w+30, t.h+30);
                 
                 ctx.fillStyle = '#ff4444';
                 ctx.fillRect(t.w/2 + 20, -HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2;
                 ctx.strokeRect(t.w/2 + 20, -HANDLE_SIZE/2, HANDLE_SIZE, HANDLE_SIZE);
 
                 ctx.fillStyle = '#009ce2';
                 ctx.fillRect(-HANDLE_SIZE/2, t.h/2 + 20, HANDLE_SIZE, HANDLE_SIZE);
-                ctx.strokeStyle = 'white'; ctx.lineWidth = 3;
                 ctx.strokeRect(-HANDLE_SIZE/2, t.h/2 + 20, HANDLE_SIZE, HANDLE_SIZE);
             }
             if(t.content) {
                 ctx.globalAlpha = t.alpha;
                 const baseStroke = parseFloat(document.getElementById('s').value);
                 const avgScale = (t.scaleW + t.scaleH) / 2;
-                const scaledStroke = baseStroke * avgScale * t.size;
+                const scaledStroke = baseStroke * avgScale * t.size * (canvas.width / 1200);
                 
                 if(document.getElementById('shd').checked) { 
+                    ctx.save();
                     ctx.scale(t.scaleW, t.scaleH);
                     ctx.shadowColor=document.getElementById('sCol').value; 
-                    ctx.shadowBlur=scaledStroke; 
+                    ctx.shadowBlur=scaledStroke * 2; 
                     ctx.fillStyle = 'white'; ctx.fillText(t.content, 0, 0);
+                    ctx.restore();
                 } else { 
                     ctx.strokeStyle=document.getElementById('sCol').value; 
                     ctx.lineWidth=scaledStroke; 
@@ -218,10 +235,7 @@
         const p2 = activePointers[ids[1]];
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
-        return {
-            dist: Math.sqrt(dx*dx + dy*dy),
-            angle: Math.atan2(dy, dx)
-        };
+        return { dist: Math.sqrt(dx*dx + dy*dy), angle: Math.atan2(dy, dx) };
     }
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -274,7 +288,7 @@
             const lx = (ex - cx) * Math.cos(-rad) - (ey - cy) * Math.sin(-rad);
             const ly = (ex - cx) * Math.sin(-rad) + (ey - cy) * Math.cos(-rad);
 
-            if(Math.abs(lx) < (Math.max(t.w, 50)/2 + 20) && Math.abs(ly) < (Math.max(t.h, 50)/2 + 20)) { 
+            if(Math.abs(lx) < (Math.max(t.w, 50)/2 + 25) && Math.abs(ly) < (Math.max(t.h, 50)/2 + 25)) { 
                 f=i; break; 
             }
         }
@@ -346,8 +360,13 @@
 
     function download() {
         if(!baseImg) return;
-        const temp = document.createElement('canvas'); temp.width=canvas.width; temp.height=canvas.height;
-        const tctx = temp.getContext('2d'); tctx.drawImage(qCache, 0, 0);
+        
+        const temp = document.createElement('canvas'); 
+        temp.width = baseImg.width; 
+        temp.height = baseImg.height;
+        const tctx = temp.getContext('2d'); 
+        tctx.drawImage(qCache, 0, 0);
+        
         texts.forEach(t => {
             const fs = (temp.width/10)*t.size; tctx.save(); tctx.font = `${fs}px "ImpactCustom", Impact, sans-serif`;
             tctx.textAlign='center'; tctx.textBaseline='middle'; tctx.translate(temp.width*t.x, temp.height*t.y); tctx.rotate(t.rot*Math.PI/180);
@@ -355,12 +374,12 @@
                 tctx.globalAlpha=t.alpha;
                 const baseStroke = parseFloat(document.getElementById('s').value);
                 const avgScale = (t.scaleW + t.scaleH) / 2;
-                const scaledStroke = baseStroke * avgScale * t.size;
+                const scaledStroke = baseStroke * avgScale * t.size * (temp.width / 1200);
 
                 if(document.getElementById('shd').checked) { 
                     tctx.scale(t.scaleW, t.scaleH);
                     tctx.shadowColor=document.getElementById('sCol').value; 
-                    tctx.shadowBlur=scaledStroke; 
+                    tctx.shadowBlur=scaledStroke * 2; 
                     tctx.fillStyle='white'; tctx.fillText(t.content, 0, 0);
                 } else { 
                     tctx.strokeStyle=document.getElementById('sCol').value; 
@@ -381,6 +400,7 @@
             }
             tctx.restore();
         });
+        
         const dataUrl = temp.toDataURL('image/jpeg', document.getElementById('quality').value/100);
         const fileName = 'img_' + Date.now() + '.jpg';
         const newTab = window.open();
